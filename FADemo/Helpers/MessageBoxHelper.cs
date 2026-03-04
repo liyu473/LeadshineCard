@@ -27,13 +27,13 @@ public static class MessageBoxHelper
         string content,
         string title = "提示",
         string primarytext = "确定",
-        string secondary = "取消",
+        string secondarytext = "取消",
         bool fullsize = false
     )
     {
         var mes = new ContentDialog
         {
-            PrimaryButtonText = secondary,
+            PrimaryButtonText = secondarytext,
             SecondaryButtonText = primarytext,           
             Title = title,
             Content = content,
