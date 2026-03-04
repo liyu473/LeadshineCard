@@ -22,8 +22,8 @@
                 <Button Command="{Binding CheckCommand}" Content="检测" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="*,*">
-                <Image Grid.Column="0" Source="{Binding CheckImage, Converter={StaticResource MatToBitmapConverter}}" />
-                <Image Grid.Column="1" Source="{Binding ResultImage}" />
+                <Image Margin="8,0" Grid.Column="0" Stretch="Uniform" Source="{Binding CheckImage, Converter={StaticResource MatToBitmapConverter}}" />
+                <Image Margin="8,0" Grid.Column="1" Stretch="Uniform" Source="{Binding ResultImage}" />
             </Grid>
         </Grid>
     </ScrollViewer>

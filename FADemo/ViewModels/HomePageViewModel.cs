@@ -6,6 +6,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FADemo.Extensions;
+using KingGleeVision;
 using LyuExtensions.Aspects;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
@@ -27,6 +29,7 @@ public partial class HomePageViewModel : ViewModelBase
     
     [ObservableProperty]
     public partial Bitmap? ResultImage {get; set; }
+
 
     [TryCatch]
     [RelayCommand]
@@ -57,6 +60,6 @@ public partial class HomePageViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private void Check()
     {
-        
+        ResultImage = PcbCropper.CropPcbArea(CheckImage!)?.ToAvaloniaBitmap();
     }
 }
