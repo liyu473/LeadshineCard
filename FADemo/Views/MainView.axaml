@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:FADemo.ViewModels"
+             mc:Ignorable="d"
+             x:DataType="vm:MainViewModel"
+             x:Class="FADemo.Views.MainView">
+   <Grid RowDefinitions="Auto,*">
+        <Grid Name="TitleBarHost"
+              Height="40"
+              ColumnDefinitions="Auto,Auto,*,Auto" 
+              Background="Transparent">
+            <Button Name="BackButton" 
+                    Theme="{DynamicResource NavigationBackButtonNormalStyle}" 
+                    Content="&#xE112;"
+                    ToolTip.Tip="返回"/>
+             <Image Margin="12,8"
+                   IsHitTestVisible="False"
+                   Source="/Assets/avalonia-logo.ico"
+                   Width="18" Height="18"
+                   DockPanel.Dock="Left"
+                   Name="WindowIcon"
+                   RenderOptions.BitmapInterpolationMode="HighQuality">
+                 <Image.IsVisible>
+                    <OnPlatform Default="False">
+                        <On Options="Windows" Content="True" />
+                    </OnPlatform>
+                </Image.IsVisible>
+            </Image>
+           <TextBlock Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                       FontSize="12"
+                       IsHitTestVisible="False"
+                       VerticalAlignment="Center"
+                       Grid.Column="1">
+                <TextBlock.IsVisible>
+                    <OnPlatform Default="False">
+                        <On Options="Windows" Content="True" />
+                    </OnPlatform>
+                </TextBlock.IsVisible>
+            </TextBlock>
+
+            <Border Grid.Column="2"/>
+        </Grid>
+
+        <ui:NavigationView AlwaysShowHeader="False"
+                           PaneDisplayMode="Left"
+                           Grid.Row="1"
+                           IsBackButtonVisible="False"
+                           Name="NavView"
+                           PaneTitle="目录"        
+                           IsSettingsVisible="True"
+                           ItemInvoked="OnNavViewItemInvoked">
+
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="主页"
+                                       Tag="HomePage"
+                                       IconSource="{StaticResource HomeIcon}" />
+            </ui:NavigationView.MenuItems>
+
+            <ui:Frame Name="FrameView"/>
+        </ui:NavigationView>
+    </Grid>
+</UserControl>

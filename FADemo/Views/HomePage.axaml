@@ -1,0 +1,15 @@
+<UserControl
+    x:Class="FADemo.Views.HomePage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:FADemo.ViewModels"
+    x:DataType="vm:HomePageViewModel"
+    mc:Ignorable="d">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Command="{Binding ImportImagesCommand}" Content="导入图片" />
+        </StackPanel>
+    </Grid>
+</UserControl>
