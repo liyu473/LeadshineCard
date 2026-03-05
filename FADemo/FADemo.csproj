@@ -29,10 +29,17 @@
         <PackageReference Include="FluentAvaloniaUI" Version="2.5.0" />
         <PackageReference Include="LyuExtensions" Version="1.1.8" />
         <PackageReference Include="LyuLogExtension" Version="1.7.2" />
+        <PackageReference Include="LyuOnnxCore" Version="1.0.4" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\KingGleeVision\KingGleeVision.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="FindError.onnx">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>

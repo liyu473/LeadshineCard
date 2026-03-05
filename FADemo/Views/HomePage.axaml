@@ -5,7 +5,6 @@
     xmlns:converters="using:FADemo.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:ui="using:FluentAvalonia.UI.Controls"
     xmlns:vm="using:FADemo.ViewModels"
     x:DataType="vm:HomePageViewModel"
     mc:Ignorable="d">
@@ -19,11 +18,22 @@
                 Orientation="Horizontal"
                 Spacing="20">
                 <Button Command="{Binding ImportImagesCommand}" Content="导入图片" />
+                <Button Command="{Binding PreProcessCommand}" Content="前处理" />
+                <Button Command="{Binding CropperCommand}" Content="裁剪" />
                 <Button Command="{Binding CheckCommand}" Content="检测" />
+                <Button Command="{Binding BatchCheckCommand}" Content="批量检测" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="*,*">
-                <Image Margin="8,0" Grid.Column="0" Stretch="Uniform" Source="{Binding CheckImage, Converter={StaticResource MatToBitmapConverter}}" />
-                <Image Margin="8,0" Grid.Column="1" Stretch="Uniform" Source="{Binding ResultImage}" />
+                <Image
+                    Grid.Column="0"
+                    Margin="8,0"
+                    Source="{Binding CheckImage, Converter={StaticResource MatToBitmapConverter}}"
+                    Stretch="Uniform" />
+                <Image
+                    Grid.Column="1"
+                    Margin="8,0"
+                    Source="{Binding ResultImage}"
+                    Stretch="Uniform" />
             </Grid>
         </Grid>
     </ScrollViewer>

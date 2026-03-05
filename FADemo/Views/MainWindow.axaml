@@ -17,12 +17,15 @@
     <Grid>
         <ContentPresenter x:Name="RootHost" />
         <Border Background="#80000000" IsVisible="{Binding IsLoading}">
-            <StackPanel>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <control:ProgressRing
                     Width="80"
                     Height="80"
                     IsIndeterminate="True" />
-                <TextBlock Text="请等候" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Text="请等候" />
             </StackPanel>
         </Border>
     </Grid>
