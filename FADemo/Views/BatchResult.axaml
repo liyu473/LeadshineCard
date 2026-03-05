@@ -18,29 +18,46 @@
     <w:AppWindow.Resources>
         <converters:MatToBitmapConverter x:Key="MatToBitmapConverter" />
     </w:AppWindow.Resources>
-    <ScrollViewer Margin="0,40" Padding="{StaticResource PageMargin}">
-        <ListBox Name="ImagesListBox" ItemsSource="{Binding Results}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Border Background="Transparent">
-                        <Panel>
-                            <Image
-                                Height="100"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Source="{Binding ., Converter={StaticResource MatToBitmapConverter}}"
-                                Stretch="Uniform" />
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-                            <ui:CommandBarButton
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                Command="{Binding #ImagesListBox.((vm:BatchResultViewModel)DataContext).ShowResultsCommand}"
-                                CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=DataContext}"
-                                IconSource="FullScreen" />
-                        </Panel>
-                    </Border>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-    </ScrollViewer>
+        <StackPanel
+            Grid.Row="0"
+            Margin="20,40,0,0"
+            Orientation="Horizontal">
+            <ui:CommandBarButton
+                Command="{Binding ExportAllCommand}"
+                IconSource="Save"
+                Label="批量导出" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Padding="{StaticResource PageMargin}">
+            <ListBox Name="ImagesListBox" ItemsSource="{Binding Results}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="Transparent">
+                            <Panel>
+                                <Image
+                                    Height="100"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Source="{Binding ., Converter={StaticResource MatToBitmapConverter}}"
+                                    Stretch="Uniform" />
+
+                                <ui:CommandBarButton
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding #ImagesListBox.((vm:BatchResultViewModel)DataContext).ShowResultsCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource Self}, Path=DataContext}"
+                                    IconSource="FullScreen" />
+                            </Panel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </ScrollViewer>
+    </Grid>
 </w:AppWindow>
