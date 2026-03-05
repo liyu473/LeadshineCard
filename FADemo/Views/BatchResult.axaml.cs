@@ -23,6 +23,8 @@ public partial class BatchResult : AppWindow
         TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur];
 
         SplashScreen = SplashScreenHelper.GetSplashScreenWithTitleOnly("请等待。。。");
+        
+        _vm!.SetWindow(this);
 
         Closed += (sender, args) =>
         {
