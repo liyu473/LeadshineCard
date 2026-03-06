@@ -122,6 +122,7 @@ public partial class HomePageViewModel : ViewModelBase
         }
     }
 
+    [Timing]
     private async Task<Mat> GetCheckResult(Mat crop)
     {
         Mat cropClone3 = crop.Clone();
@@ -155,8 +156,6 @@ public partial class HomePageViewModel : ViewModelBase
             var detections = session.Detect(cropClone3, ["error"], detectionOptions);
             return cropClone3.DrawDetections(detections, drawOptions);
         });
-        
-       
     }
 
     private async Task BatchProcessingExport()

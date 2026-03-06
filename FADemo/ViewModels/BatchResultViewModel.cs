@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FADemo.Helpers;
 using LyuExtensions.Aspects;
 using OpenCvSharp;
 using Window = Avalonia.Controls.Window;
@@ -34,7 +35,7 @@ public partial class BatchResultViewModel:ViewModelBase
             _window.TransparencyLevelHint = value == WindowTransparencyLevel.None ? [] : [value];
         }
     }
-
+    
     [RelayCommand]
     private void ShowResults(Mat mat)
     {
@@ -68,14 +69,12 @@ public partial class BatchResultViewModel:ViewModelBase
                 var filePath = Path.Combine(folderPath, fileName);
                 Cv2.ImWrite(filePath, mat);
             }
-
-            // 可选：显示成功消息
-            // await MessageBoxHelper.ShowAsync($"成功导出 {Results.Count} 张图片到 {folderPath}");
+            
+            MessageBoxHelper.Show($"成功导出 {Results.Count} 张图片到 {folderPath}");
         }
         catch (Exception ex)
-        {
-            // 可选：显示错误消息
-            // await MessageBoxHelper.ShowAsync($"导出失败: {ex.Message}");
+        { 
+            MessageBoxHelper.Show($"导出失败: {ex.Message}");
         }
     }
 }
