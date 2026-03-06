@@ -1,4 +1,5 @@
 ﻿using KingGleeVision.MatPreProcess;
+using KingGleeVision.Models;
 using OpenCvSharp;
 
 namespace KingGleeVision;
@@ -13,7 +14,12 @@ public static class PcbCropper
             .ToMedianBlur(3);
     }
 
-    public static Mat? CropPcbArea(Mat src)
+    /// <summary>
+    /// 裁剪 PCB 区域，返回裁剪后的图像和在原图中的位置信息
+    /// </summary>
+    /// <param name="src">原始图像</param>
+    /// <returns>CropResult 包含裁剪后的 Mat 和在原图中的 Rect；若无法裁剪则返回 null</returns>
+    public static CropResult? CropPcbArea(Mat src)
     {
         var pre = PreProcess(src);
         if (pre is null)
@@ -60,7 +66,7 @@ public static class PcbCropper
             Rect roiExact = new Rect(bestX, bestY, bestW, bestH);
             Mat croppedExact = new Mat(pre, roiExact);
 
-            return croppedExact;
+            return new CropResult(croppedExact, roiExact);
         }
 
         return null;

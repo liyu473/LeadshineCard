@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.Input;
 using FADemo.Extensions;
 using FADemo.Views;
 using KingGleeVision;
+using KingGleeVision.Models;
 using LyuExtensions.Aspects;
 using LyuOnnxCore.Extensions;
 using LyuOnnxCore.Models;
@@ -77,15 +78,22 @@ public partial class HomePageViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private void Cropper()
     {
-        ResultImage = PcbCropper.CropPcbArea(CheckImage!)?.ToAvaloniaBitmap();
+        ResultImage = PcbCropper.CropPcbArea(CheckImage!)?.CroppedMat.ToAvaloniaBitmap();
     }
 
     [TryCatch]
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private async Task Check()
     {
-        var crop = PcbCropper.CropPcbArea(CheckImage!);
-        ResultImage = crop is null ? new Mat().ToAvaloniaBitmap() : (await GetCheckResult(crop)).ToAvaloniaBitmap();
+        var cropResult = PcbCropper.CropPcbArea(CheckImage!);
+        if (cropResult is null)
+        {
+            ResultImage = new Mat().ToAvaloniaBitmap();
+            return;
+        }
+        // cropResult.RoiInOriginal 即为裁剪区域在原图中的位置
+        // ONNX 推理检测到的框可通过 cropResult.ToOriginalCoordinates(detectionRect) 转换回原图坐标
+        ResultImage = (await GetCheckResult(cropResult.CroppedMat)).ToAvaloniaBitmap();
     }
 
     [TryCatch]
@@ -115,7 +123,7 @@ public partial class HomePageViewModel : ViewModelBase
             foreach (var file in files)
             {
                 var read = Cv2.ImRead(file.Path.LocalPath);
-                vm!.Results.Add(await GetCheckResult(PcbCropper.CropPcbArea(read)!));
+                vm!.Results.Add(await GetCheckResult(PcbCropper.CropPcbArea(read)!.CroppedMat));
             }
             _mainWindowViewModel.IsLoading = false;
             window.Show();
@@ -183,7 +191,7 @@ public partial class HomePageViewModel : ViewModelBase
                 var read = Cv2.ImRead(f.Path.LocalPath);
                 string dir = Path.GetDirectoryName(f.Path.LocalPath)!;
                 string outDir = Path.Combine(dir, $"crop{num++}.png");
-                Cv2.ImWrite(outDir, PcbCropper.CropPcbArea(read)!);
+                Cv2.ImWrite(outDir, PcbCropper.CropPcbArea(read)!.CroppedMat);
             }
         }
     }
