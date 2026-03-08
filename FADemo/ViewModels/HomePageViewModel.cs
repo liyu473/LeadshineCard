@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia;
@@ -12,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using FADemo.Extensions;
 using FADemo.Views;
 using KingGleeVision;
+using KingGleeVision.MatPreProcess;
 using KingGleeVision.Models;
 using LyuExtensions.Aspects;
 using LyuOnnxCore.Extensions;
@@ -20,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 using OpenCvSharp;
 using ZLogger;
+using Rect = OpenCvSharp.Rect;
 
 namespace FADemo.ViewModels;
 
@@ -28,7 +28,7 @@ public partial class HomePageViewModel : ViewModelBase
 {
     [Inject]
     private readonly ILogger<HomePageViewModel> _logger;
-    
+
     [Inject]
     private readonly MainWindowViewModel _mainWindowViewModel;
 
@@ -75,25 +75,27 @@ public partial class HomePageViewModel : ViewModelBase
         ResultImage = PcbCropper.PreProcess(CheckImage!)?.ToAvaloniaBitmap();
     }
 
+    [Timing]
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private void Cropper()
     {
-        ResultImage = PcbCropper.CropPcbArea(CheckImage!)?.CroppedMat.ToAvaloniaBitmap();
+        var crop = PcbCropper.CropPcbArea1(CheckImage!);
+        ResultImage = crop?.CroppedMat.ToAvaloniaBitmap();
     }
 
     [TryCatch]
+    [Timing]
     [RelayCommand(CanExecute = nameof(CanCheck))]
     private async Task Check()
     {
-        var cropResult = PcbCropper.CropPcbArea(CheckImage!);
+        var cropResult = PcbCropper.CropPcbArea1(CheckImage!);
         if (cropResult is null)
         {
             ResultImage = new Mat().ToAvaloniaBitmap();
             return;
         }
-        // cropResult.RoiInOriginal 即为裁剪区域在原图中的位置
-        // ONNX 推理检测到的框可通过 cropResult.ToOriginalCoordinates(detectionRect) 转换回原图坐标
-        ResultImage = (await GetCheckResult(cropResult.CroppedMat)).ToAvaloniaBitmap();
+
+        ResultImage = (await GetCheckResult(cropResult)).ToAvaloniaBitmap();
     }
 
     [TryCatch]
@@ -123,7 +125,7 @@ public partial class HomePageViewModel : ViewModelBase
             foreach (var file in files)
             {
                 var read = Cv2.ImRead(file.Path.LocalPath);
-                vm!.Results.Add(await GetCheckResult(PcbCropper.CropPcbArea(read)!.CroppedMat));
+                vm!.Results.Add(await GetCheckResult(PcbCropper.CropPcbArea1(read)!));
             }
             _mainWindowViewModel.IsLoading = false;
             window.Show();
@@ -131,14 +133,14 @@ public partial class HomePageViewModel : ViewModelBase
     }
 
     [Timing]
-    private async Task<Mat> GetCheckResult(Mat crop)
+    private async Task<Mat> GetCheckResult(CropResult crop)
     {
-        Mat cropClone3 = crop.Clone();
-        if (crop.Channels() == 1)
+        Mat cropClone3 = crop.CroppedMat.Clone();
+        if (crop.CroppedMat.Channels() == 1)
         {
-            Cv2.CvtColor(crop, cropClone3, ColorConversionCodes.GRAY2BGR);
+            Cv2.CvtColor(crop.CroppedMat, cropClone3, ColorConversionCodes.GRAY2BGR);
         }
-        
+
         return await Task.Run(() =>
         {
             using var session = new InferenceSession("./FindError.onnx");
@@ -162,6 +164,24 @@ public partial class HomePageViewModel : ViewModelBase
             };
 
             var detections = session.Detect(cropClone3, ["error"], detectionOptions);
+
+            /* 检测检测区域在原图的坐标是否准确
+             * 
+            if (detections.Count > 0)
+            {
+                var box = detections[0].BoundingBox;
+                if (box is BoundingBox boxvalue)
+                {
+                    var rect = crop.ToOriginalCoordinates(
+                        boxvalue.ToRect()
+                    );
+
+                    var check = CheckImage!.DrawRectEx(rect);
+                }
+            } 
+
+            */
+
             return cropClone3.DrawDetections(detections, drawOptions);
         });
     }
@@ -191,7 +211,7 @@ public partial class HomePageViewModel : ViewModelBase
                 var read = Cv2.ImRead(f.Path.LocalPath);
                 string dir = Path.GetDirectoryName(f.Path.LocalPath)!;
                 string outDir = Path.Combine(dir, $"crop{num++}.png");
-                Cv2.ImWrite(outDir, PcbCropper.CropPcbArea(read)!.CroppedMat);
+                Cv2.ImWrite(outDir, PcbCropper.CropPcbArea1(read)!.CroppedMat);
             }
         }
     }

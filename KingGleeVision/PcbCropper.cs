@@ -15,11 +15,12 @@ public static class PcbCropper
     }
 
     /// <summary>
+    /// 方法1：实测下来上下有黑边，得配合二次上下黑边处理BorderCropping得到最佳裁剪图
     /// 裁剪 PCB 区域，返回裁剪后的图像和在原图中的位置信息
     /// </summary>
     /// <param name="src">原始图像</param>
     /// <returns>CropResult 包含裁剪后的 Mat 和在原图中的 Rect；若无法裁剪则返回 null</returns>
-    public static CropResult? CropPcbArea(Mat src)
+    public static CropResult? CropPcbArea1(Mat src, bool isBorderCropping = true)
     {
         var pre = PreProcess(src);
         if (pre is null)
@@ -66,9 +67,101 @@ public static class PcbCropper
             Rect roiExact = new Rect(bestX, bestY, bestW, bestH);
             Mat croppedExact = new Mat(pre, roiExact);
 
-            return new CropResult(croppedExact, roiExact);
+            var result = new CropResult(croppedExact, roiExact);
+
+            return isBorderCropping ? BorderCropping(result) : result;
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 二次处理裁剪的PCB的黑边
+    /// </summary>
+    /// <param name="result"></param>
+    /// <param name="whiteRatioThreshold">最低白色像素占比</param>
+    /// <param name="minContinuousRows">连续命中行数，才认为是PCB区域</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public static CropResult? BorderCropping(
+        CropResult result,
+        double whiteRatioThreshold = 0.4,
+        int minContinuousRows = 5
+    )
+    {
+        var src = result.CroppedMat;
+        if (src.Empty())
+            throw new ArgumentException("Image is empty");
+
+        var gray = src.Channels() == 1 ? src.Clone() : src.CvtColor(ColorConversionCodes.BGR2GRAY);
+
+        Mat binary = new Mat();
+
+        Cv2.Threshold(gray, binary, 0, 255, ThresholdTypes.Binary | ThresholdTypes.Otsu);
+
+        int height = binary.Rows;
+        int width = binary.Cols;
+
+        int top = 0;
+        int bottom = height - 1;
+
+        // 找上边界
+        int run = 0;
+        for (int y = 0; y < height; y++)
+        {
+            int white = Cv2.CountNonZero(binary.Row(y));
+            double ratio = (double)white / width;
+
+            if (ratio >= whiteRatioThreshold)
+            {
+                run++;
+                if (run >= minContinuousRows)
+                {
+                    top = y - minContinuousRows + 1;
+                    break;
+                }
+            }
+            else
+            {
+                run = 0;
+            }
+        }
+
+        // 找下边界
+        run = 0;
+        for (int y = height - 1; y >= 0; y--)
+        {
+            int white = Cv2.CountNonZero(binary.Row(y));
+            double ratio = (double)white / width;
+
+            if (ratio >= whiteRatioThreshold)
+            {
+                run++;
+                if (run >= minContinuousRows)
+                {
+                    bottom = y + minContinuousRows - 1;
+                    if (bottom >= height)
+                        bottom = height - 1;
+                    break;
+                }
+            }
+            else
+            {
+                run = 0;
+            }
+        }
+
+        Rect roi = new Rect(0, top, width, bottom - top + 1);
+
+        Rect roiInOriginal = new Rect(
+            result.RoiInOriginal.X + roi.X,
+            result.RoiInOriginal.Y + roi.Y,
+            roi.Width,
+            roi.Height
+        );
+
+        Mat croppedMat = new Mat(src, roi).Clone();
+
+        return new CropResult(croppedMat, roiInOriginal);
     }
 }

@@ -5,23 +5,17 @@ namespace KingGleeVision.Models;
 /// <summary>
 /// 裁剪结果，保存裁剪后的图像及其在原图中的位置信息
 /// </summary>
-public class CropResult
+public class CropResult(Mat croppedMat, Rect roiInOriginal)
 {
     /// <summary>
     /// 裁剪后的图像
     /// </summary>
-    public Mat CroppedMat { get; init; }
+    public Mat CroppedMat { get; init; } = croppedMat;
 
     /// <summary>
     /// 裁剪区域在原图中的位置（Rect: X, Y, Width, Height）
     /// </summary>
-    public Rect RoiInOriginal { get; init; }
-
-    public CropResult(Mat croppedMat, Rect roiInOriginal)
-    {
-        CroppedMat = croppedMat;
-        RoiInOriginal = roiInOriginal;
-    }
+    public Rect RoiInOriginal { get; init; } = roiInOriginal;
 
     /// <summary>
     /// 将裁剪图上的局部坐标转换为原图坐标

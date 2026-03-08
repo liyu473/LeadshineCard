@@ -30,7 +30,9 @@ public static class FindMark
     /// </summary>
     /// <param name="cropResult">裁剪结果（包含裁剪图和在原图中的位置）</param>
     /// <returns>左半部分和右半部分的 CropResult 元组，每个都包含在原图中的坐标</returns>
-    public static (CropResult left, CropResult right) SplitCropResultVertically(this CropResult cropResult)
+    public static (CropResult left, CropResult right) SplitCropResultVertically(
+        this CropResult cropResult
+    )
     {
         var croppedMat = cropResult.CroppedMat;
         var roiInOriginal = cropResult.RoiInOriginal;
@@ -39,22 +41,13 @@ public static class FindMark
         int height = croppedMat.Height;
         int halfWidth = width / 2;
 
-        // 左半部分：在裁剪图中的 ROI
         Rect leftLocalRoi = new Rect(0, 0, halfWidth, height);
         Mat leftMat = new Mat(croppedMat, leftLocalRoi);
-        // 左半部分在原图中的位置：X 不变，宽度为 halfWidth
-        Rect leftOriginalRoi = new Rect(
-            roiInOriginal.X,
-            roiInOriginal.Y,
-            halfWidth,
-            height
-        );
+        Rect leftOriginalRoi = new Rect(roiInOriginal.X, roiInOriginal.Y, halfWidth, height);
         var leftResult = new CropResult(leftMat, leftOriginalRoi);
 
-        // 右半部分：在裁剪图中的 ROI
         Rect rightLocalRoi = new Rect(halfWidth, 0, width - halfWidth, height);
         Mat rightMat = new Mat(croppedMat, rightLocalRoi);
-        // 右半部分在原图中的位置：X 偏移 halfWidth
         Rect rightOriginalRoi = new Rect(
             roiInOriginal.X + halfWidth,
             roiInOriginal.Y,
