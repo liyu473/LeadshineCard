@@ -21,6 +21,7 @@
                 <Button Command="{Binding PreProcessCommand}" Content="前处理" />
                 <Button Command="{Binding CropperCommand}" Content="裁剪" />
                 <Button Command="{Binding CheckCommand}" Content="检测" />
+                <Button Command="{Binding BatchCropCommand}" Content="批量裁剪" />
                 <Button Command="{Binding BatchCheckCommand}" Content="批量检测" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="*,*">

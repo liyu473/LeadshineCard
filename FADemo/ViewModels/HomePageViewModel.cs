@@ -10,7 +10,6 @@ using CommunityToolkit.Mvvm.Input;
 using FADemo.Extensions;
 using FADemo.Views;
 using KingGleeVision;
-using KingGleeVision.MatPreProcess;
 using KingGleeVision.Models;
 using LyuExtensions.Aspects;
 using LyuOnnxCore.Extensions;
@@ -19,7 +18,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 using OpenCvSharp;
 using ZLogger;
-using Rect = OpenCvSharp.Rect;
 
 namespace FADemo.ViewModels;
 
@@ -97,6 +95,14 @@ public partial class HomePageViewModel : ViewModelBase
 
         ResultImage = (await GetCheckResult(cropResult)).ToAvaloniaBitmap();
     }
+
+    [TryCatch]
+    [RelayCommand]
+    private async Task BatchCrop()
+    {
+        await BatchCropExport();
+    }
+
 
     [TryCatch]
     [RelayCommand]
@@ -186,7 +192,7 @@ public partial class HomePageViewModel : ViewModelBase
         });
     }
 
-    private async Task BatchProcessingExport()
+    private async Task BatchCropExport()
     {
         var mainWindow = (
             Application.Current!.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime
