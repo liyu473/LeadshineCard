@@ -1,27 +1,23 @@
 using LeadshineCard.Core.Interfaces;
 using LeadshineCard.ThirdPart;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LeadshineCard.Implementation;
 
 /// <summary>
 /// 雷赛IO控制器实现
 /// </summary>
-public class LeadshineIoController : IIoController
+/// <remarks>
+/// 构造函数
+/// </remarks>
+/// <param name="cardNo">板卡号</param>
+/// <param name="logger">日志记录器，为null时使用NullLogger</param>
+public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>? logger = null)
+    : IIoController
 {
-    private readonly ushort _cardNo;
-    private readonly ILogger<LeadshineIoController> _logger;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    public LeadshineIoController(
-        ushort cardNo,
-        ILogger<LeadshineIoController> logger)
-    {
-        _cardNo = cardNo;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<LeadshineIoController> _logger =
+        logger ?? NullLogger<LeadshineIoController>.Instance;
 
     /// <summary>
     /// 读取输入位
@@ -30,7 +26,7 @@ public class LeadshineIoController : IIoController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_inbit(_cardNo, bitNo));
+            var result = await Task.Run(() => LTDMC.dmc_read_inbit(cardNo, bitNo));
             return result == 1;
         }
         catch (Exception ex)
@@ -50,7 +46,7 @@ public class LeadshineIoController : IIoController
         try
         {
             ushort val = (ushort)(value ? 1 : 0);
-            var result = await Task.Run(() => LTDMC.dmc_write_outbit(_cardNo, bitNo, val));
+            var result = await Task.Run(() => LTDMC.dmc_write_outbit(cardNo, bitNo, val));
 
             if (result != 0)
             {
@@ -74,7 +70,7 @@ public class LeadshineIoController : IIoController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_outbit(_cardNo, bitNo));
+            var result = await Task.Run(() => LTDMC.dmc_read_outbit(cardNo, bitNo));
             return result == 1;
         }
         catch (Exception ex)
@@ -91,7 +87,7 @@ public class LeadshineIoController : IIoController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_inport(_cardNo, portNo));
+            var result = await Task.Run(() => LTDMC.dmc_read_inport(cardNo, portNo));
             return result;
         }
         catch (Exception ex)
@@ -108,7 +104,7 @@ public class LeadshineIoController : IIoController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_outport(_cardNo, portNo));
+            var result = await Task.Run(() => LTDMC.dmc_read_outport(cardNo, portNo));
             return result;
         }
         catch (Exception ex)
@@ -127,7 +123,7 @@ public class LeadshineIoController : IIoController
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_write_outport(_cardNo, portNo, value));
+            var result = await Task.Run(() => LTDMC.dmc_write_outport(cardNo, portNo, value));
 
             if (result != 0)
             {
@@ -181,7 +177,11 @@ public class LeadshineIoController : IIoController
         if (values == null || values.Length == 0)
             throw new ArgumentException("值数组不能为空", nameof(values));
 
-        _logger.LogDebug("批量写入输出位，起始: {StartBit}, 数量: {Count}", startBit, values.Length);
+        _logger.LogDebug(
+            "批量写入输出位，起始: {StartBit}, 数量: {Count}",
+            startBit,
+            values.Length
+        );
 
         try
         {

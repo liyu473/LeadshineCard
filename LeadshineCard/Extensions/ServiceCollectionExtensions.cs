@@ -12,79 +12,62 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// 添加雷赛运动控制服务
+    /// 如果宿主未注册日志服务，类库将使用NullLogger
     /// </summary>
     /// <param name="services">服务集合</param>
+    /// <param name="useLogger">是否使用日志，false则强制使用NullLogger（即使宿主已注册日志）</param>
     /// <returns>服务集合</returns>
     public static IServiceCollection AddLeadshineMotionControl(
-        this IServiceCollection services)
+        this IServiceCollection services,
+        bool useLogger = true
+    )
     {
-        // 注册日志
-        services.AddLogging(builder =>
+        services.AddSingleton<IMotionCard>(provider =>
         {
-            builder.AddConsole();
-            builder.AddDebug();
-            builder.SetMinimumLevel(LogLevel.Information);
+            if (useLogger)
+            {
+                var logger = provider.GetService<ILogger<LeadshineMotionCard>>();
+                var loggerFactory = provider.GetService<ILoggerFactory>();
+
+                return new LeadshineMotionCard(logger, loggerFactory);
+            }
+            else
+            {
+                return new LeadshineMotionCard(null, null);
+            }
         });
 
-        // 注册核心服务 - 单例模式，整个应用程序生命周期内只有一个实例
-        services.AddSingleton<IMotionCard, LeadshineMotionCard>();
-
         return services;
     }
 
     /// <summary>
-    /// 添加雷赛运动控制服务（带日志配置）
+    /// 添加雷赛运动控制服务（类库自带日志配置）
+    /// 类库会自动配置Console和Debug日志
+    /// 在宿主无日志服务时调用
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <param name="configureLogging">日志配置委托</param>
     /// <returns>服务集合</returns>
-    public static IServiceCollection AddLeadshineMotionControl(
+    public static IServiceCollection AddLeadshineMotionControlWithLogging(
         this IServiceCollection services,
-        Action<ILoggingBuilder> configureLogging)
+        Action<ILoggingBuilder>? configureLogging = null
+    )
     {
-        ArgumentNullException.ThrowIfNull(configureLogging);
-
-        // 注册日志
-        services.AddLogging(configureLogging);
-
-        // 注册核心服务
-        services.AddSingleton<IMotionCard, LeadshineMotionCard>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// 添加雷赛运动控制服务（完整配置）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configureLogging">日志配置委托</param>
-    /// <param name="configureServices">服务配置委托</param>
-    /// <returns>服务集合</returns>
-    public static IServiceCollection AddLeadshineMotionControl(
-        this IServiceCollection services,
-        Action<ILoggingBuilder>? configureLogging = null,
-        Action<IServiceCollection>? configureServices = null)
-    {
-        // 注册日志
-        if (configureLogging != null)
+        services.AddLogging(builder =>
         {
-            services.AddLogging(configureLogging);
-        }
-        else
-        {
-            services.AddLogging(builder =>
+            if (configureLogging != null)
+            {
+                configureLogging(builder);
+            }
+            else
             {
                 builder.AddConsole();
                 builder.AddDebug();
                 builder.SetMinimumLevel(LogLevel.Information);
-            });
-        }
+            }
+        });
 
-        // 注册核心服务
         services.AddSingleton<IMotionCard, LeadshineMotionCard>();
-
-        // 执行自定义配置
-        configureServices?.Invoke(services);
 
         return services;
     }

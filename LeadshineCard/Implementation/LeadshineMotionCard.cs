@@ -3,38 +3,37 @@ using LeadshineCard.Core.Interfaces;
 using LeadshineCard.Core.Models;
 using LeadshineCard.ThirdPart;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LeadshineCard.Implementation;
 
 /// <summary>
 /// 雷赛运动控制卡实现
 /// </summary>
-public class LeadshineMotionCard : IMotionCard
+/// <remarks>
+/// 构造函数
+/// </remarks>
+/// <param name="logger">日志记录器，为null时使用NullLogger</param>
+/// <param name="loggerFactory">日志工厂，为null时使用NullLoggerFactory</param>
+public class LeadshineMotionCard(
+    ILogger<LeadshineMotionCard>? logger = null,
+    ILoggerFactory? loggerFactory = null
+) : IMotionCard
 {
-    private readonly ILogger<LeadshineMotionCard> _logger;
-    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<LeadshineMotionCard> _logger =
+        logger ?? NullLogger<LeadshineMotionCard>.Instance;
+    private readonly ILoggerFactory _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
     private ushort _cardNo;
     private bool _isConnected;
     private bool _disposed;
     private CardInfo? _cardInfo;
-    private readonly Dictionary<ushort, IAxisController> _axisControllers;
+    private readonly Dictionary<ushort, IAxisController> _axisControllers =
+        new Dictionary<ushort, IAxisController>();
     private IIoController? _ioController;
     private IInterpolationController? _interpolationController;
 
     public ushort CardNo => _cardNo;
     public bool IsConnected => _isConnected;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    public LeadshineMotionCard(
-        ILogger<LeadshineMotionCard> logger,
-        ILoggerFactory loggerFactory)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
-        _axisControllers = new Dictionary<ushort, IAxisController>();
-    }
 
     /// <summary>
     /// 初始化板卡
@@ -168,7 +167,8 @@ public class LeadshineMotionCard : IMotionCard
             controller = new LeadshineAxisController(
                 _cardNo,
                 axisNo,
-                _loggerFactory.CreateLogger<LeadshineAxisController>());
+                _loggerFactory.CreateLogger<LeadshineAxisController>()
+            );
             _axisControllers[axisNo] = controller;
         }
 
@@ -190,7 +190,8 @@ public class LeadshineMotionCard : IMotionCard
             _logger.LogDebug("创建IO控制器");
             _ioController = new LeadshineIoController(
                 _cardNo,
-                _loggerFactory.CreateLogger<LeadshineIoController>());
+                _loggerFactory.CreateLogger<LeadshineIoController>()
+            );
         }
 
         return _ioController;
@@ -211,7 +212,8 @@ public class LeadshineMotionCard : IMotionCard
             _logger.LogDebug("创建插补控制器");
             _interpolationController = new LeadshineInterpolationController(
                 _cardNo,
-                _loggerFactory.CreateLogger<LeadshineInterpolationController>());
+                _loggerFactory.CreateLogger<LeadshineInterpolationController>()
+            );
         }
 
         return _interpolationController;
@@ -255,7 +257,7 @@ public class LeadshineMotionCard : IMotionCard
             {
                 CardNo = _cardNo,
                 IsConnected = true,
-                InitializedTime = DateTime.Now
+                InitializedTime = DateTime.Now,
             };
 
             // 获取板卡版本
@@ -267,8 +269,11 @@ public class LeadshineMotionCard : IMotionCard
             }
 
             // 获取固件版本
-            uint firmId = 0, subFirmId = 0;
-            result = await Task.Run(() => LTDMC.dmc_get_card_soft_version(_cardNo, ref firmId, ref subFirmId));
+            uint firmId = 0,
+                subFirmId = 0;
+            result = await Task.Run(
+                () => LTDMC.dmc_get_card_soft_version(_cardNo, ref firmId, ref subFirmId)
+            );
             if (result == 0)
             {
                 _cardInfo.FirmwareVersion = firmId;
@@ -292,8 +297,11 @@ public class LeadshineMotionCard : IMotionCard
             }
 
             // 获取IO数量
-            ushort totalIn = 0, totalOut = 0;
-            result = await Task.Run(() => LTDMC.dmc_get_total_ionum(_cardNo, ref totalIn, ref totalOut));
+            ushort totalIn = 0,
+                totalOut = 0;
+            result = await Task.Run(
+                () => LTDMC.dmc_get_total_ionum(_cardNo, ref totalIn, ref totalOut)
+            );
             if (result == 0)
             {
                 _cardInfo.TotalInputs = totalIn;
@@ -313,7 +321,8 @@ public class LeadshineMotionCard : IMotionCard
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _logger.LogDebug("释放板卡资源");
 

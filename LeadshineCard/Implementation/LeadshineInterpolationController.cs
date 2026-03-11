@@ -1,27 +1,25 @@
 using LeadshineCard.Core.Interfaces;
 using LeadshineCard.ThirdPart;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LeadshineCard.Implementation;
 
 /// <summary>
 /// 雷赛插补控制器实现
 /// </summary>
-public class LeadshineInterpolationController : IInterpolationController
+/// <remarks>
+/// 构造函数
+/// </remarks>
+/// <param name="cardNo">板卡号</param>
+/// <param name="logger">日志记录器，为null时使用NullLogger</param>
+public class LeadshineInterpolationController(
+    ushort cardNo,
+    ILogger<LeadshineInterpolationController>? logger = null
+) : IInterpolationController
 {
-    private readonly ushort _cardNo;
-    private readonly ILogger<LeadshineInterpolationController> _logger;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    public LeadshineInterpolationController(
-        ushort cardNo,
-        ILogger<LeadshineInterpolationController> logger)
-    {
-        _cardNo = cardNo;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<LeadshineInterpolationController> _logger =
+        logger ?? NullLogger<LeadshineInterpolationController>.Instance;
 
     /// <summary>
     /// 直线插补
@@ -32,14 +30,18 @@ public class LeadshineInterpolationController : IInterpolationController
             throw new ArgumentException("轴数组不能为空", nameof(axes));
 
         if (targetPositions == null || targetPositions.Length != axes.Length)
-            throw new ArgumentException("目标位置数组长度必须与轴数组相同", nameof(targetPositions));
+            throw new ArgumentException(
+                "目标位置数组长度必须与轴数组相同",
+                nameof(targetPositions)
+            );
 
         _logger.LogInformation("直线插补，轴数: {AxisCount}", axes.Length);
 
         try
         {
-            var result = await Task.Run(() =>
-                LTDMC.dmc_line_unit(_cardNo, 0, (ushort)axes.Length, axes, targetPositions, 0));
+            var result = await Task.Run(
+                () => LTDMC.dmc_line_unit(cardNo, 0, (ushort)axes.Length, axes, targetPositions, 0)
+            );
 
             if (result != 0)
             {
@@ -60,27 +62,52 @@ public class LeadshineInterpolationController : IInterpolationController
     /// <summary>
     /// 圆弧插补
     /// </summary>
-    public async Task<bool> ArcInterpolationAsync(ushort[] axes, double[] targetPositions,
-                                                   double[] centerPositions, bool clockwise)
+    public async Task<bool> ArcInterpolationAsync(
+        ushort[] axes,
+        double[] targetPositions,
+        double[] centerPositions,
+        bool clockwise
+    )
     {
         if (axes == null || axes.Length < 2)
             throw new ArgumentException("圆弧插补至少需要2个轴", nameof(axes));
 
         if (targetPositions == null || targetPositions.Length != axes.Length)
-            throw new ArgumentException("目标位置数组长度必须与轴数组相同", nameof(targetPositions));
+            throw new ArgumentException(
+                "目标位置数组长度必须与轴数组相同",
+                nameof(targetPositions)
+            );
 
         if (centerPositions == null || centerPositions.Length != axes.Length)
-            throw new ArgumentException("圆心位置数组长度必须与轴数组相同", nameof(centerPositions));
+            throw new ArgumentException(
+                "圆心位置数组长度必须与轴数组相同",
+                nameof(centerPositions)
+            );
 
         var direction = clockwise ? "顺时针" : "逆时针";
-        _logger.LogInformation("圆弧插补，轴数: {AxisCount}, 方向: {Direction}", axes.Length, direction);
+        _logger.LogInformation(
+            "圆弧插补，轴数: {AxisCount}, 方向: {Direction}",
+            axes.Length,
+            direction
+        );
 
         try
         {
             ushort arcDir = (ushort)(clockwise ? 0 : 1);
-            var result = await Task.Run(() =>
-                LTDMC.dmc_arc_move_center_unit(_cardNo, 0, (ushort)axes.Length, axes,
-                    targetPositions, centerPositions, arcDir, 0, 0));
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_arc_move_center_unit(
+                        cardNo,
+                        0,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        centerPositions,
+                        arcDir,
+                        0,
+                        0
+                    )
+            );
 
             if (result != 0)
             {
@@ -106,12 +133,17 @@ public class LeadshineInterpolationController : IInterpolationController
         if (axes == null || axes.Length == 0)
             throw new ArgumentException("轴数组不能为空", nameof(axes));
 
-        _logger.LogInformation("打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}", crd, axes.Length);
+        _logger.LogInformation(
+            "打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}",
+            crd,
+            axes.Length
+        );
 
         try
         {
-            var result = await Task.Run(() =>
-                LTDMC.dmc_conti_open_list(_cardNo, crd, (ushort)axes.Length, axes));
+            var result = await Task.Run(
+                () => LTDMC.dmc_conti_open_list(cardNo, crd, (ushort)axes.Length, axes)
+            );
 
             if (result != 0)
             {
@@ -138,7 +170,7 @@ public class LeadshineInterpolationController : IInterpolationController
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_close_list(_cardNo, crd));
+            var result = await Task.Run(() => LTDMC.dmc_conti_close_list(cardNo, crd));
 
             if (result != 0)
             {
@@ -175,9 +207,18 @@ public class LeadshineInterpolationController : IInterpolationController
                 axes[i] = i;
             }
 
-            var result = await Task.Run(() =>
-                LTDMC.dmc_conti_line_unit(_cardNo, crd, (ushort)axes.Length, axes,
-                    targetPositions, 0, mark));
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_conti_line_unit(
+                        cardNo,
+                        crd,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        0,
+                        mark
+                    )
+            );
 
             if (result != 0)
             {
@@ -197,14 +238,22 @@ public class LeadshineInterpolationController : IInterpolationController
     /// <summary>
     /// 添加圆弧段
     /// </summary>
-    public async Task<bool> AddArcSegmentAsync(ushort crd, double[] targetPositions,
-                                                double[] centerPositions, bool clockwise, int mark = 0)
+    public async Task<bool> AddArcSegmentAsync(
+        ushort crd,
+        double[] targetPositions,
+        double[] centerPositions,
+        bool clockwise,
+        int mark = 0
+    )
     {
         if (targetPositions == null || targetPositions.Length < 2)
             throw new ArgumentException("圆弧至少需要2个轴的目标位置", nameof(targetPositions));
 
         if (centerPositions == null || centerPositions.Length != targetPositions.Length)
-            throw new ArgumentException("圆心位置数组长度必须与目标位置数组相同", nameof(centerPositions));
+            throw new ArgumentException(
+                "圆心位置数组长度必须与目标位置数组相同",
+                nameof(centerPositions)
+            );
 
         _logger.LogDebug("添加圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
@@ -217,9 +266,21 @@ public class LeadshineInterpolationController : IInterpolationController
             }
 
             ushort arcDir = (ushort)(clockwise ? 0 : 1);
-            var result = await Task.Run(() =>
-                LTDMC.dmc_conti_arc_move_center_unit(_cardNo, crd, (ushort)axes.Length, axes,
-                    targetPositions, centerPositions, arcDir, 0, 0, mark));
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_conti_arc_move_center_unit(
+                        cardNo,
+                        crd,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        centerPositions,
+                        arcDir,
+                        0,
+                        0,
+                        mark
+                    )
+            );
 
             if (result != 0)
             {
@@ -245,7 +306,7 @@ public class LeadshineInterpolationController : IInterpolationController
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_start_list(_cardNo, crd));
+            var result = await Task.Run(() => LTDMC.dmc_conti_start_list(cardNo, crd));
 
             if (result != 0)
             {
@@ -272,7 +333,7 @@ public class LeadshineInterpolationController : IInterpolationController
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_pause_list(_cardNo, crd));
+            var result = await Task.Run(() => LTDMC.dmc_conti_pause_list(cardNo, crd));
 
             if (result != 0)
             {
@@ -299,7 +360,7 @@ public class LeadshineInterpolationController : IInterpolationController
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_stop_list(_cardNo, crd, 1));
+            var result = await Task.Run(() => LTDMC.dmc_conti_stop_list(cardNo, crd, 1));
 
             if (result != 0)
             {
@@ -324,7 +385,7 @@ public class LeadshineInterpolationController : IInterpolationController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_remain_space(_cardNo, crd));
+            var result = await Task.Run(() => LTDMC.dmc_conti_remain_space(cardNo, crd));
             return result;
         }
         catch (Exception ex)
@@ -341,7 +402,7 @@ public class LeadshineInterpolationController : IInterpolationController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_read_current_mark(_cardNo, crd));
+            var result = await Task.Run(() => LTDMC.dmc_conti_read_current_mark(cardNo, crd));
             return result;
         }
         catch (Exception ex)
@@ -358,7 +419,7 @@ public class LeadshineInterpolationController : IInterpolationController
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_check_done(_cardNo, crd));
+            var result = await Task.Run(() => LTDMC.dmc_conti_check_done(cardNo, crd));
             return result == 1;
         }
         catch (Exception ex)
