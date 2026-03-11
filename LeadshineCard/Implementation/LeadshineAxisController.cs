@@ -38,13 +38,16 @@ public class LeadshineAxisController(
 
         parameters.Validate();
 
-        _logger.LogInformation(
-            "设置轴 {AxisNo} 运动参数: MaxSpeed={MaxSpeed}, Acc={Acceleration}, Dec={Deceleration}",
-            axisNo,
-            parameters.MaxSpeed,
-            parameters.Acceleration,
-            parameters.Deceleration
-        );
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "设置轴 {AxisNo} 运动参数: MaxSpeed={MaxSpeed}, Acc={Acceleration}, Dec={Deceleration}",
+                axisNo,
+                parameters.MaxSpeed,
+                parameters.Acceleration,
+                parameters.Deceleration
+            );
+        }
 
         try
         {
@@ -86,12 +89,18 @@ public class LeadshineAxisController(
 
                 if (result != 0)
                 {
-                    _logger.LogWarning("设置S曲线参数失败，错误码: {ErrorCode}", result);
+                    if (_logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning("设置S曲线参数失败，错误码: {ErrorCode}", result);
+                    }
                 }
             }
 
             _currentParameters = parameters;
-            _logger.LogDebug("轴 {AxisNo} 运动参数设置成功", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 运动参数设置成功", axisNo);
+            }
         }
         catch (AxisException)
         {
@@ -175,7 +184,10 @@ public class LeadshineAxisController(
             throw new ArgumentException("距离参数无效", nameof(distance));
         }
 
-        _logger.LogInformation("轴 {AxisNo} 相对运动，距离: {Distance}", axisNo, distance);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("轴 {AxisNo} 相对运动，距离: {Distance}", axisNo, distance);
+        }
 
         try
         {
@@ -187,7 +199,10 @@ public class LeadshineAxisController(
                 throw new AxisMotionException($"相对运动失败", axisNo, result);
             }
 
-            _logger.LogDebug("轴 {AxisNo} 相对运动命令发送成功", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 相对运动命令发送成功", axisNo);
+            }
             return true;
         }
         catch (AxisMotionException)
@@ -211,7 +226,10 @@ public class LeadshineAxisController(
             throw new ArgumentException("位置参数无效", nameof(position));
         }
 
-        _logger.LogInformation("轴 {AxisNo} 绝对运动，目标位置: {Position}", axisNo, position);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("轴 {AxisNo} 绝对运动，目标位置: {Position}", axisNo, position);
+        }
 
         try
         {
@@ -223,7 +241,10 @@ public class LeadshineAxisController(
                 throw new AxisMotionException($"绝对运动失败", axisNo, result);
             }
 
-            _logger.LogDebug("轴 {AxisNo} 绝对运动命令发送成功", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 绝对运动命令发送成功", axisNo);
+            }
             return true;
         }
         catch (AxisMotionException)
@@ -242,8 +263,11 @@ public class LeadshineAxisController(
     /// </summary>
     public async Task<bool> JogAsync(bool positiveDirection)
     {
-        var direction = positiveDirection ? "正向" : "负向";
-        _logger.LogInformation("轴 {AxisNo} JOG运动，方向: {Direction}", axisNo, direction);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            var direction = positiveDirection ? "正向" : "负向";
+            _logger.LogInformation("轴 {AxisNo} JOG运动，方向: {Direction}", axisNo, direction);
+        }
 
         try
         {
@@ -256,7 +280,10 @@ public class LeadshineAxisController(
                 throw new AxisMotionException($"JOG运动失败", axisNo, result);
             }
 
-            _logger.LogDebug("轴 {AxisNo} JOG运动命令发送成功", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} JOG运动命令发送成功", axisNo);
+            }
             return true;
         }
         catch (AxisMotionException)
@@ -275,7 +302,10 @@ public class LeadshineAxisController(
     /// </summary>
     public async Task<bool> StopAsync(StopMode mode)
     {
-        _logger.LogInformation("轴 {AxisNo} 停止运动，模式: {Mode}", axisNo, mode);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("轴 {AxisNo} 停止运动，模式: {Mode}", axisNo, mode);
+        }
 
         try
         {
@@ -295,7 +325,10 @@ public class LeadshineAxisController(
                 return false;
             }
 
-            _logger.LogDebug("轴 {AxisNo} 停止命令发送成功", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 停止命令发送成功", axisNo);
+            }
             return true;
         }
         catch (Exception ex)
@@ -319,7 +352,10 @@ public class LeadshineAxisController(
 
             if (result != 0)
             {
-                _logger.LogWarning("获取轴 {AxisNo} 位置失败，错误码: {ErrorCode}", axisNo, result);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("获取轴 {AxisNo} 位置失败，错误码: {ErrorCode}", axisNo, result);
+                }
                 return 0;
             }
 
@@ -337,7 +373,10 @@ public class LeadshineAxisController(
     /// </summary>
     public async Task<bool> SetCurrentPositionAsync(double position)
     {
-        _logger.LogInformation("设置轴 {AxisNo} 当前位置: {Position}", axisNo, position);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("设置轴 {AxisNo} 当前位置: {Position}", axisNo, position);
+        }
 
         try
         {
@@ -374,7 +413,10 @@ public class LeadshineAxisController(
 
             if (result != 0)
             {
-                _logger.LogWarning("获取轴 {AxisNo} 速度失败，错误码: {ErrorCode}", axisNo, result);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("获取轴 {AxisNo} 速度失败，错误码: {ErrorCode}", axisNo, result);
+                }
                 return 0;
             }
 
@@ -401,11 +443,14 @@ public class LeadshineAxisController(
 
             if (result != 0)
             {
-                _logger.LogWarning(
-                    "获取轴 {AxisNo} 目标位置失败，错误码: {ErrorCode}",
-                    axisNo,
-                    result
-                );
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(
+                        "获取轴 {AxisNo} 目标位置失败，错误码: {ErrorCode}",
+                        axisNo,
+                        result
+                    );
+                }
                 return 0;
             }
 
@@ -425,16 +470,18 @@ public class LeadshineAxisController(
     {
         try
         {
-            var status = new AxisStatus { AxisNo = axisNo, Timestamp = DateTime.Now };
+            var status = new AxisStatus
+            {
+                AxisNo = axisNo,
+                Timestamp = DateTime.Now, // 获取位置
+                Position = await GetCurrentPositionAsync(),
 
-            // 获取位置
-            status.Position = await GetCurrentPositionAsync();
+                // 获取速度
+                Speed = await GetCurrentSpeedAsync(),
 
-            // 获取速度
-            status.Speed = await GetCurrentSpeedAsync();
-
-            // 获取目标位置
-            status.TargetPosition = await GetTargetPositionAsync();
+                // 获取目标位置
+                TargetPosition = await GetTargetPositionAsync(),
+            };
 
             // 获取IO状态
             var ioStatus = await Task.Run(() => LTDMC.dmc_axis_io_status(cardNo, axisNo));
@@ -483,12 +530,15 @@ public class LeadshineAxisController(
             throw new ArgumentException("速度必须大于0", nameof(newSpeed));
         }
 
-        _logger.LogInformation(
-            "轴 {AxisNo} 在线变速，新速度: {NewSpeed}, 加速时间: {AccelTime}",
-            axisNo,
-            newSpeed,
-            accelTime
-        );
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "轴 {AxisNo} 在线变速，新速度: {NewSpeed}, 加速时间: {AccelTime}",
+                axisNo,
+                newSpeed,
+                accelTime
+            );
+        }
 
         try
         {
@@ -502,7 +552,10 @@ public class LeadshineAxisController(
                 return false;
             }
 
-            _logger.LogDebug("轴 {AxisNo} 在线变速命令发送成功", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 在线变速命令发送成功", axisNo);
+            }
             return true;
         }
         catch (Exception ex)

@@ -35,7 +35,10 @@ public class LeadshineInterpolationController(
                 nameof(targetPositions)
             );
 
-        _logger.LogInformation("直线插补，轴数: {AxisCount}", axes.Length);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("直线插补，轴数: {AxisCount}", axes.Length);
+        }
 
         try
         {
@@ -49,7 +52,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("直线插补命令发送成功");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("直线插补命令发送成功");
+            }
             return true;
         }
         catch (Exception ex)
@@ -84,12 +90,15 @@ public class LeadshineInterpolationController(
                 nameof(centerPositions)
             );
 
-        var direction = clockwise ? "顺时针" : "逆时针";
-        _logger.LogInformation(
-            "圆弧插补，轴数: {AxisCount}, 方向: {Direction}",
-            axes.Length,
-            direction
-        );
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            var direction = clockwise ? "顺时针" : "逆时针";
+            _logger.LogInformation(
+                "圆弧插补，轴数: {AxisCount}, 方向: {Direction}",
+                axes.Length,
+                direction
+            );
+        }
 
         try
         {
@@ -115,7 +124,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("圆弧插补命令发送成功");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("圆弧插补命令发送成功");
+            }
             return true;
         }
         catch (Exception ex)
@@ -133,11 +145,14 @@ public class LeadshineInterpolationController(
         if (axes == null || axes.Length == 0)
             throw new ArgumentException("轴数组不能为空", nameof(axes));
 
-        _logger.LogInformation(
-            "打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}",
-            crd,
-            axes.Length
-        );
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}",
+                crd,
+                axes.Length
+            );
+        }
 
         try
         {
@@ -151,7 +166,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("连续插补缓冲区已打开");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("连续插补缓冲区已打开");
+            }
             return true;
         }
         catch (Exception ex)
@@ -166,7 +184,10 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> CloseContinuousBufferAsync(ushort crd)
     {
-        _logger.LogInformation("关闭坐标系 {Crd} 连续插补缓冲区", crd);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("关闭坐标系 {Crd} 连续插补缓冲区", crd);
+        }
 
         try
         {
@@ -178,7 +199,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("连续插补缓冲区已关闭");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("连续插补缓冲区已关闭");
+            }
             return true;
         }
         catch (Exception ex)
@@ -196,7 +220,10 @@ public class LeadshineInterpolationController(
         if (targetPositions == null || targetPositions.Length == 0)
             throw new ArgumentException("目标位置数组不能为空", nameof(targetPositions));
 
-        _logger.LogDebug("添加直线段到坐标系 {Crd}，标号: {Mark}", crd, mark);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("添加直线段到坐标系 {Crd}，标号: {Mark}", crd, mark);
+        }
 
         try
         {
@@ -255,7 +282,10 @@ public class LeadshineInterpolationController(
                 nameof(centerPositions)
             );
 
-        _logger.LogDebug("添加圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("添加圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
+        }
 
         try
         {
@@ -302,7 +332,10 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> StartContinuousAsync(ushort crd)
     {
-        _logger.LogInformation("开始坐标系 {Crd} 连续插补", crd);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("开始坐标系 {Crd} 连续插补", crd);
+        }
 
         try
         {
@@ -314,7 +347,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("连续插补已开始");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("连续插补已开始");
+            }
             return true;
         }
         catch (Exception ex)
@@ -329,7 +365,10 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> PauseContinuousAsync(ushort crd)
     {
-        _logger.LogInformation("暂停坐标系 {Crd} 连续插补", crd);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("暂停坐标系 {Crd} 连续插补", crd);
+        }
 
         try
         {
@@ -341,7 +380,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("连续插补已暂停");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("连续插补已暂停");
+            }
             return true;
         }
         catch (Exception ex)
@@ -356,7 +398,10 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> StopContinuousAsync(ushort crd)
     {
-        _logger.LogInformation("停止坐标系 {Crd} 连续插补", crd);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("停止坐标系 {Crd} 连续插补", crd);
+        }
 
         try
         {
@@ -368,7 +413,10 @@ public class LeadshineInterpolationController(
                 return false;
             }
 
-            _logger.LogDebug("连续插补已停止");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("连续插补已停止");
+            }
             return true;
         }
         catch (Exception ex)

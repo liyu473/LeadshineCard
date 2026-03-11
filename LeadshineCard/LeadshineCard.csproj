@@ -7,7 +7,7 @@
     <LangVersion>12.0</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     
-    <NoWarn>$(NoWarn);1591;CA1401;CA1873;CA2101;SYSLIB1054</NoWarn>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

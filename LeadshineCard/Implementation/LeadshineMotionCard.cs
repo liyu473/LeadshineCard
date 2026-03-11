@@ -27,8 +27,7 @@ public class LeadshineMotionCard(
     private bool _isConnected;
     private bool _disposed;
     private CardInfo? _cardInfo;
-    private readonly Dictionary<ushort, IAxisController> _axisControllers =
-        new Dictionary<ushort, IAxisController>();
+    private readonly Dictionary<ushort, IAxisController> _axisControllers = [];
     private IIoController? _ioController;
     private IInterpolationController? _interpolationController;
 
@@ -40,7 +39,10 @@ public class LeadshineMotionCard(
     /// </summary>
     public async Task<bool> InitializeAsync(ushort cardNo)
     {
-        _logger.LogInformation("开始初始化板卡 {CardNo}", cardNo);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("开始初始化板卡 {CardNo}", cardNo);
+        }
 
         try
         {
@@ -59,7 +61,10 @@ public class LeadshineMotionCard(
             // 查询板卡信息
             await LoadCardInfoAsync();
 
-            _logger.LogInformation("板卡 {CardNo} 初始化成功", cardNo);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("板卡 {CardNo} 初始化成功", cardNo);
+            }
             return true;
         }
         catch (CardInitializationException)
@@ -80,11 +85,17 @@ public class LeadshineMotionCard(
     {
         if (!_isConnected)
         {
-            _logger.LogWarning("板卡未连接，无需关闭");
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("板卡未连接，无需关闭");
+            }
             return true;
         }
 
-        _logger.LogInformation("关闭板卡 {CardNo}", _cardNo);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("关闭板卡 {CardNo}", _cardNo);
+        }
 
         try
         {
@@ -101,7 +112,10 @@ public class LeadshineMotionCard(
             _ioController = null;
             _interpolationController = null;
 
-            _logger.LogInformation("板卡 {CardNo} 已关闭", _cardNo);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("板卡 {CardNo} 已关闭", _cardNo);
+            }
             return true;
         }
         catch (Exception ex)
@@ -116,7 +130,10 @@ public class LeadshineMotionCard(
     /// </summary>
     public async Task<bool> ResetAsync()
     {
-        _logger.LogInformation("复位板卡 {CardNo}", _cardNo);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("复位板卡 {CardNo}", _cardNo);
+        }
 
         try
         {
@@ -128,7 +145,10 @@ public class LeadshineMotionCard(
                 return false;
             }
 
-            _logger.LogInformation("板卡 {CardNo} 复位成功", _cardNo);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("板卡 {CardNo} 复位成功", _cardNo);
+            }
             return true;
         }
         catch (Exception ex)
@@ -163,7 +183,10 @@ public class LeadshineMotionCard(
 
         if (!_axisControllers.TryGetValue(axisNo, out var controller))
         {
-            _logger.LogDebug("创建轴 {AxisNo} 控制器", axisNo);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("创建轴 {AxisNo} 控制器", axisNo);
+            }
             controller = new LeadshineAxisController(
                 _cardNo,
                 axisNo,
@@ -187,7 +210,10 @@ public class LeadshineMotionCard(
 
         if (_ioController == null)
         {
-            _logger.LogDebug("创建IO控制器");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("创建IO控制器");
+            }
             _ioController = new LeadshineIoController(
                 _cardNo,
                 _loggerFactory.CreateLogger<LeadshineIoController>()
@@ -209,7 +235,10 @@ public class LeadshineMotionCard(
 
         if (_interpolationController == null)
         {
-            _logger.LogDebug("创建插补控制器");
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("创建插补控制器");
+            }
             _interpolationController = new LeadshineInterpolationController(
                 _cardNo,
                 _loggerFactory.CreateLogger<LeadshineInterpolationController>()
@@ -224,7 +253,10 @@ public class LeadshineMotionCard(
     /// </summary>
     public async Task<bool> EmergencyStopAsync()
     {
-        _logger.LogWarning("执行紧急停止");
+        if (_logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning("执行紧急停止");
+        }
 
         try
         {
@@ -236,7 +268,10 @@ public class LeadshineMotionCard(
                 return false;
             }
 
-            _logger.LogInformation("紧急停止执行成功");
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("紧急停止执行成功");
+            }
             return true;
         }
         catch (Exception ex)
@@ -308,11 +343,17 @@ public class LeadshineMotionCard(
                 _cardInfo.TotalOutputs = totalOut;
             }
 
-            _logger.LogInformation("板卡信息: {CardInfo}", _cardInfo);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("板卡信息: {CardInfo}", _cardInfo);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "加载板卡信息失败");
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "加载板卡信息失败");
+            }
         }
     }
 
@@ -324,7 +365,10 @@ public class LeadshineMotionCard(
         if (_disposed)
             return;
 
-        _logger.LogDebug("释放板卡资源");
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("释放板卡资源");
+        }
 
         if (_isConnected)
         {

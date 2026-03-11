@@ -2,6 +2,8 @@
 
 namespace LeadshineCard.ThirdPart;
 
+
+#pragma warning disable IDE0049,1591,CA1401,CA2101,SYSLIB1054
 public class LTDMC
 {
     //---------------------   板卡初始和配置函数  ----------------------
@@ -1331,3 +1333,6 @@ public class LTDMC
     [DllImport("LTDMC.dll")]
     public static extern short nmc_set_offset_pos(UInt16 CardNo, UInt16 axis, ref double offset_pos);
 }
+
+
+#pragma warning restore IDE0049,1591,CA1401,CA2101,SYSLIB1054

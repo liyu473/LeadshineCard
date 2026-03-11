@@ -41,7 +41,10 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public async Task<bool> WriteOutputBitAsync(ushort bitNo, bool value)
     {
-        _logger.LogDebug("写入输出位 {BitNo} = {Value}", bitNo, value);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("写入输出位 {BitNo} = {Value}", bitNo, value);
+        }
 
         try
         {
@@ -119,7 +122,10 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public async Task<bool> WriteOutputPortAsync(ushort portNo, uint value)
     {
-        _logger.LogDebug("写入输出端口 {PortNo} = 0x{Value:X}", portNo, value);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("写入输出端口 {PortNo} = 0x{Value:X}", portNo, value);
+        }
 
         try
         {
@@ -148,7 +154,10 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         if (count == 0)
             throw new ArgumentException("数量必须大于0", nameof(count));
 
-        _logger.LogDebug("批量读取输入位，起始: {StartBit}, 数量: {Count}", startBit, count);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("批量读取输入位，起始: {StartBit}, 数量: {Count}", startBit, count);
+        }
 
         try
         {
@@ -177,11 +186,14 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         if (values == null || values.Length == 0)
             throw new ArgumentException("值数组不能为空", nameof(values));
 
-        _logger.LogDebug(
-            "批量写入输出位，起始: {StartBit}, 数量: {Count}",
-            startBit,
-            values.Length
-        );
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug(
+                "批量写入输出位，起始: {StartBit}, 数量: {Count}",
+                startBit,
+                values.Length
+            );
+        }
 
         try
         {
@@ -192,7 +204,10 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
 
                 if (!success)
                 {
-                    _logger.LogWarning("写入输出位 {BitNo} 失败", bitNo);
+                    if (_logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning("写入输出位 {BitNo} 失败", bitNo);
+                    }
                     return false;
                 }
             }

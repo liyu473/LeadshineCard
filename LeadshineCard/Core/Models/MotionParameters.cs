@@ -1,5 +1,3 @@
-using LeadshineCard.Core.Enums;
-
 namespace LeadshineCard.Core.Models;
 
 /// <summary>
