@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using FluentAvalonia.UI.Windowing;
 
 namespace FADemo.Helpers;

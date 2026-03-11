@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>12.0</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- 禁用特定警告：1591 = 缺少XML注释, CA1401 = P/Invoke方法可见性, CA1873 = 日志参数计算, CA2101 = P/Invoke字符串封送, SYSLIB1054 = LibraryImport建议 -->
+    
     <NoWarn>$(NoWarn);1591;CA1401;CA1873;CA2101;SYSLIB1054</NoWarn>
   </PropertyGroup>
 

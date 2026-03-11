@@ -57,6 +57,9 @@
                 <ui:NavigationViewItem Content="主页"
                                        Tag="HomePage"
                                        IconSource="{StaticResource HomeIcon}" />
+                 <ui:NavigationViewItem Content="板卡"
+                                       Tag="CardPage"
+                                       IconSource="{StaticResource CardIcon}" />
             </ui:NavigationView.MenuItems>
 
             <ui:Frame Name="FrameView"/>

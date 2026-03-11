@@ -238,6 +238,7 @@ public partial class MainView : UserControl
         var iconKey = tag switch
         {
             "HomePage" => isSelected ? "HomeIconFilled" : "HomeIcon",
+            "CardPage" => isSelected ? "CardIconFilled" : "CardIcon",
             _ => null,
         };
 
