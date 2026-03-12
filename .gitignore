@@ -6,6 +6,7 @@ riderModule.iml
 
 # Visual Studio / Rider / Cursor user files
 .vs/
+.dotnet/
 .idea/
 *.suo
 *.user

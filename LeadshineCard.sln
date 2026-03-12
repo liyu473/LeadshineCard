@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11520.95
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LeadshineCard", "LeadshineCard\LeadshineCard.csproj", "{FB8FE956-330C-47E7-BBB8-9057D8C6AB1B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FB8FE956-330C-47E7-BBB8-9057D8C6AB1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB8FE956-330C-47E7-BBB8-9057D8C6AB1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB8FE956-330C-47E7-BBB8-9057D8C6AB1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB8FE956-330C-47E7-BBB8-9057D8C6AB1B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5E58D562-8C45-487F-9B9E-65C0F16EB0BF}
+	EndGlobalSection
+EndGlobal
