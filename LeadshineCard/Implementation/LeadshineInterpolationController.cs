@@ -476,4 +476,592 @@ public class LeadshineInterpolationController(
             return false;
         }
     }
+
+    /// <summary>
+    /// 设置插补速度参数
+    /// </summary>
+    public async Task<bool> SetVectorProfileAsync(
+        ushort crd,
+        double minVel,
+        double maxVel,
+        double tacc,
+        double tdec,
+        double stopVel
+    )
+    {
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "设置坐标系 {Crd} 插补速度参数: MinVel={MinVel}, MaxVel={MaxVel}, Tacc={Tacc}, Tdec={Tdec}, StopVel={StopVel}",
+                crd,
+                minVel,
+                maxVel,
+                tacc,
+                tdec,
+                stopVel
+            );
+        }
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_set_vector_profile_unit(
+                        cardNo,
+                        crd,
+                        minVel,
+                        maxVel,
+                        tacc,
+                        tdec,
+                        stopVel
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置插补速度参数失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("插补速度参数设置成功");
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置插补速度参数异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 获取插补速度参数
+    /// </summary>
+    public async Task<(double minVel, double maxVel, double tacc, double tdec, double stopVel)?> GetVectorProfileAsync(
+        ushort crd
+    )
+    {
+        try
+        {
+            double minVel = 0,
+                maxVel = 0,
+                tacc = 0,
+                tdec = 0,
+                stopVel = 0;
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_get_vector_profile_unit(
+                        cardNo,
+                        crd,
+                        ref minVel,
+                        ref maxVel,
+                        ref tacc,
+                        ref tdec,
+                        ref stopVel
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("获取插补速度参数失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return (minVel, maxVel, tacc, tdec, stopVel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取插补速度参数异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 圆弧插补（半径终点式）
+    /// </summary>
+    public async Task<bool> ArcInterpolationByRadiusAsync(
+        ushort[] axes,
+        double[] targetPositions,
+        double arcRadius,
+        bool clockwise,
+        int circle = 0
+    )
+    {
+        if (axes == null || axes.Length < 2)
+            throw new ArgumentException("圆弧插补至少需要2个轴", nameof(axes));
+
+        if (targetPositions == null || targetPositions.Length != axes.Length)
+            throw new ArgumentException(
+                "目标位置数组长度必须与轴数组相同",
+                nameof(targetPositions)
+            );
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            var direction = clockwise ? "顺时针" : "逆时针";
+            _logger.LogInformation(
+                "半径式圆弧插补，轴数: {AxisCount}, 半径: {Radius}, 方向: {Direction}",
+                axes.Length,
+                arcRadius,
+                direction
+            );
+        }
+
+        try
+        {
+            ushort arcDir = (ushort)(clockwise ? 0 : 1);
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_arc_move_radius_unit(
+                        cardNo,
+                        0,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        arcRadius,
+                        arcDir,
+                        circle,
+                        0
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("半径式圆弧插补失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("半径式圆弧插补命令发送成功");
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "半径式圆弧插补异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 圆弧插补（三点式）
+    /// </summary>
+    public async Task<bool> ArcInterpolationBy3PointsAsync(
+        ushort[] axes,
+        double[] targetPositions,
+        double[] midPositions,
+        int circle = 0
+    )
+    {
+        if (axes == null || axes.Length < 2)
+            throw new ArgumentException("圆弧插补至少需要2个轴", nameof(axes));
+
+        if (targetPositions == null || targetPositions.Length != axes.Length)
+            throw new ArgumentException(
+                "目标位置数组长度必须与轴数组相同",
+                nameof(targetPositions)
+            );
+
+        if (midPositions == null || midPositions.Length != axes.Length)
+            throw new ArgumentException(
+                "中间点位置数组长度必须与轴数组相同",
+                nameof(midPositions)
+            );
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("三点式圆弧插补，轴数: {AxisCount}", axes.Length);
+        }
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_arc_move_3points_unit(
+                        cardNo,
+                        0,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        midPositions,
+                        circle,
+                        0
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("三点式圆弧插补失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("三点式圆弧插补命令发送成功");
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "三点式圆弧插补异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 添加圆弧段到连续插补缓冲区（半径式）
+    /// </summary>
+    public async Task<bool> AddArcSegmentByRadiusAsync(
+        ushort crd,
+        double[] targetPositions,
+        double arcRadius,
+        bool clockwise,
+        int circle = 0,
+        int mark = 0
+    )
+    {
+        if (targetPositions == null || targetPositions.Length < 2)
+            throw new ArgumentException("圆弧至少需要2个轴的目标位置", nameof(targetPositions));
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("添加半径式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
+        }
+
+        try
+        {
+            var axes = new ushort[targetPositions.Length];
+            for (ushort i = 0; i < targetPositions.Length; i++)
+            {
+                axes[i] = i;
+            }
+
+            ushort arcDir = (ushort)(clockwise ? 0 : 1);
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_conti_arc_move_radius_unit(
+                        cardNo,
+                        crd,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        arcRadius,
+                        arcDir,
+                        circle,
+                        0,
+                        mark
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("添加半径式圆弧段失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "添加半径式圆弧段异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 添加圆弧段到连续插补缓冲区（三点式）
+    /// </summary>
+    public async Task<bool> AddArcSegmentBy3PointsAsync(
+        ushort crd,
+        double[] targetPositions,
+        double[] midPositions,
+        int circle = 0,
+        int mark = 0
+    )
+    {
+        if (targetPositions == null || targetPositions.Length < 2)
+            throw new ArgumentException("圆弧至少需要2个轴的目标位置", nameof(targetPositions));
+
+        if (midPositions == null || midPositions.Length != targetPositions.Length)
+            throw new ArgumentException(
+                "中间点位置数组长度必须与目标位置数组相同",
+                nameof(midPositions)
+            );
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("添加三点式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
+        }
+
+        try
+        {
+            var axes = new ushort[targetPositions.Length];
+            for (ushort i = 0; i < targetPositions.Length; i++)
+            {
+                axes[i] = i;
+            }
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_conti_arc_move_3points_unit(
+                        cardNo,
+                        crd,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        midPositions,
+                        circle,
+                        0,
+                        mark
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("添加三点式圆弧段失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "添加三点式圆弧段异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 设置圆弧限制参数
+    /// </summary>
+    public async Task<bool> SetArcLimitAsync(
+        ushort crd,
+        bool enable,
+        double maxCenAcc,
+        double maxArcError
+    )
+    {
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "设置坐标系 {Crd} 圆弧限制: Enable={Enable}, MaxCenAcc={MaxCenAcc}, MaxArcError={MaxArcError}",
+                crd,
+                enable,
+                maxCenAcc,
+                maxArcError
+            );
+        }
+
+        try
+        {
+            ushort enableFlag = (ushort)(enable ? 1 : 0);
+            var result = await Task.Run(
+                () => LTDMC.dmc_set_arc_limit(cardNo, crd, enableFlag, maxCenAcc, maxArcError)
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置圆弧限制失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("圆弧限制设置成功");
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置圆弧限制异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 获取圆弧限制参数
+    /// </summary>
+    public async Task<(bool enable, double maxCenAcc, double maxArcError)?> GetArcLimitAsync(
+        ushort crd
+    )
+    {
+        try
+        {
+            ushort enable = 0;
+            double maxCenAcc = 0,
+                maxArcError = 0;
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_get_arc_limit(cardNo, crd, ref enable, ref maxCenAcc, ref maxArcError)
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("获取圆弧限制失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return (enable == 1, maxCenAcc, maxArcError);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取圆弧限制异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 计算圆心圆弧弧长
+    /// </summary>
+    public async Task<double?> CalculateArcLengthByCenterAsync(
+        double[] startPos,
+        double[] targetPos,
+        double[] cenPos,
+        bool clockwise,
+        double circle = 0
+    )
+    {
+        if (startPos == null || startPos.Length < 2)
+            throw new ArgumentException("起始位置数组至少需要2个元素", nameof(startPos));
+
+        if (targetPos == null || targetPos.Length != startPos.Length)
+            throw new ArgumentException("目标位置数组长度必须与起始位置数组相同", nameof(targetPos));
+
+        if (cenPos == null || cenPos.Length != startPos.Length)
+            throw new ArgumentException("圆心位置数组长度必须与起始位置数组相同", nameof(cenPos));
+
+        try
+        {
+            double arcLength = 0;
+            ushort arcDir = (ushort)(clockwise ? 0 : 1);
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_calculate_arclength_center(
+                        startPos,
+                        targetPos,
+                        cenPos,
+                        arcDir,
+                        circle,
+                        ref arcLength
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("计算圆心圆弧弧长失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return arcLength;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "计算圆心圆弧弧长异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 计算三点圆弧弧长
+    /// </summary>
+    public async Task<double?> CalculateArcLengthBy3PointsAsync(
+        double[] startPos,
+        double[] midPos,
+        double[] targetPos,
+        double circle = 0
+    )
+    {
+        if (startPos == null || startPos.Length < 2)
+            throw new ArgumentException("起始位置数组至少需要2个元素", nameof(startPos));
+
+        if (midPos == null || midPos.Length != startPos.Length)
+            throw new ArgumentException("中间点位置数组长度必须与起始位置数组相同", nameof(midPos));
+
+        if (targetPos == null || targetPos.Length != startPos.Length)
+            throw new ArgumentException("目标位置数组长度必须与起始位置数组相同", nameof(targetPos));
+
+        try
+        {
+            double arcLength = 0;
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_calculate_arclength_3point(
+                        startPos,
+                        midPos,
+                        targetPos,
+                        circle,
+                        ref arcLength
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("计算三点圆弧弧长失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return arcLength;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "计算三点圆弧弧长异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 计算半径圆弧弧长
+    /// </summary>
+    public async Task<double?> CalculateArcLengthByRadiusAsync(
+        double[] startPos,
+        double[] targetPos,
+        double arcRadius,
+        bool clockwise,
+        double circle = 0
+    )
+    {
+        if (startPos == null || startPos.Length < 2)
+            throw new ArgumentException("起始位置数组至少需要2个元素", nameof(startPos));
+
+        if (targetPos == null || targetPos.Length != startPos.Length)
+            throw new ArgumentException("目标位置数组长度必须与起始位置数组相同", nameof(targetPos));
+
+        try
+        {
+            double arcLength = 0;
+            ushort arcDir = (ushort)(clockwise ? 0 : 1);
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_calculate_arclength_radius(
+                        startPos,
+                        targetPos,
+                        arcRadius,
+                        arcDir,
+                        circle,
+                        ref arcLength
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("计算半径圆弧弧长失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return arcLength;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "计算半径圆弧弧长异常");
+            return null;
+        }
+    }
 }
