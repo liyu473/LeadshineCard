@@ -564,4 +564,230 @@ public class LeadshineAxisController(
             throw new AxisException($"在线变速异常", axisNo, ex);
         }
     }
+
+    /// <summary>
+    /// 设置回零模式
+    /// </summary>
+    public async Task<bool> SetHomeModeAsync(
+        HomeDirection direction,
+        double speed,
+        HomeMode mode
+    )
+    {
+        if (speed <= 0)
+        {
+            throw new ArgumentException("回零速度必须大于0", nameof(speed));
+        }
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "设置轴 {AxisNo} 回零模式: 方向={Direction}, 速度={Speed}, 模式={Mode}",
+                axisNo,
+                direction,
+                speed,
+                mode
+            );
+        }
+
+        try
+        {
+            ushort homeDir = (ushort)direction;
+            ushort homeMode = (ushort)mode;
+            ushort ezCount = 1; // EZ信号计数，默认为1
+
+            var result = await Task.Run(
+                () => LTDMC.dmc_set_homemode(cardNo, axisNo, homeDir, speed, homeMode, ezCount)
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置轴 {AxisNo} 回零模式失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisException($"设置回零模式失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 回零模式设置成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} 回零模式异常", axisNo);
+            throw new AxisException($"设置回零模式异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 执行回零运动
+    /// </summary>
+    public async Task<bool> HomeMoveAsync()
+    {
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("轴 {AxisNo} 开始回零运动", axisNo);
+        }
+
+        try
+        {
+            var result = await Task.Run(() => LTDMC.dmc_home_move(cardNo, axisNo));
+
+            if (result != 0)
+            {
+                _logger.LogError("轴 {AxisNo} 回零运动启动失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisMotionException($"回零运动启动失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 回零运动命令发送成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisMotionException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "轴 {AxisNo} 回零运动异常", axisNo);
+            throw new AxisMotionException($"回零运动异常", axisNo);
+        }
+    }
+
+    /// <summary>
+    /// 获取回零结果
+    /// </summary>
+    public async Task<ushort> GetHomeResultAsync()
+    {
+        try
+        {
+            ushort state = 0;
+            var result = await Task.Run(
+                () => LTDMC.dmc_get_home_result(cardNo, axisNo, ref state)
+            );
+
+            if (result != 0)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(
+                        "获取轴 {AxisNo} 回零结果失败，错误码: {ErrorCode}",
+                        axisNo,
+                        result
+                    );
+                }
+                return 0;
+            }
+
+            return state;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取轴 {AxisNo} 回零结果异常", axisNo);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// 设置回零后的位置
+    /// </summary>
+    public async Task<bool> SetHomePositionAsync(double position)
+    {
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("设置轴 {AxisNo} 回零后位置: {Position}", axisNo, position);
+        }
+
+        try
+        {
+            ushort enable = 1; // 1=启用回零后设置位置
+            var result = await Task.Run(
+                () => LTDMC.dmc_set_home_position_unit(cardNo, axisNo, enable, position)
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError(
+                    "设置轴 {AxisNo} 回零后位置失败，错误码: {ErrorCode}",
+                    axisNo,
+                    result
+                );
+                return false;
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} 回零后位置设置成功", axisNo);
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} 回零后位置异常", axisNo);
+            throw new AxisException($"设置回零后位置异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 等待回零完成
+    /// </summary>
+    public async Task<bool> WaitHomeCompleteAsync(int timeoutMs = 30000)
+    {
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "等待轴 {AxisNo} 回零完成，超时时间: {Timeout}ms",
+                axisNo,
+                timeoutMs
+            );
+        }
+
+        try
+        {
+            var startTime = DateTime.Now;
+            var timeout = timeoutMs > 0 ? TimeSpan.FromMilliseconds(timeoutMs) : TimeSpan.MaxValue;
+
+            while (true)
+            {
+                // 检查是否超时
+                if (DateTime.Now - startTime > timeout)
+                {
+                    _logger.LogWarning("轴 {AxisNo} 回零超时", axisNo);
+                    return false;
+                }
+
+                // 获取回零结果
+                var state = await GetHomeResultAsync();
+
+                // state: 0=未完成, 1=成功, 2=失败
+                if (state == 1)
+                {
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation("轴 {AxisNo} 回零成功", axisNo);
+                    }
+                    return true;
+                }
+                else if (state == 2)
+                {
+                    _logger.LogError("轴 {AxisNo} 回零失败", axisNo);
+                    return false;
+                }
+
+                // 等待一段时间后再次检查
+                await Task.Delay(100);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "等待轴 {AxisNo} 回零完成异常", axisNo);
+            throw new AxisException($"等待回零完成异常", axisNo, ex);
+        }
+    }
 }

@@ -97,4 +97,39 @@ public interface IAxisController
     /// <param name="accelTime">加速时间 (单位: 秒)</param>
     /// <returns>是否成功</returns>
     Task<bool> ChangeSpeedAsync(double newSpeed, double accelTime);
+
+    /// <summary>
+    /// 设置回零模式
+    /// </summary>
+    /// <param name="direction">回零方向</param>
+    /// <param name="speed">回零速度 (单位: mm/s 或 度/s)</param>
+    /// <param name="mode">回零模式</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetHomeModeAsync(HomeDirection direction, double speed, HomeMode mode);
+
+    /// <summary>
+    /// 执行回零运动
+    /// </summary>
+    /// <returns>是否成功</returns>
+    Task<bool> HomeMoveAsync();
+
+    /// <summary>
+    /// 获取回零结果
+    /// </summary>
+    /// <returns>回零状态 (0=未完成, 1=成功, 2=失败)</returns>
+    Task<ushort> GetHomeResultAsync();
+
+    /// <summary>
+    /// 设置回零后的位置
+    /// </summary>
+    /// <param name="position">回零后设置的位置值 (单位: mm 或 度)</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetHomePositionAsync(double position);
+
+    /// <summary>
+    /// 等待回零完成
+    /// </summary>
+    /// <param name="timeoutMs">超时时间(毫秒)，0表示无限等待</param>
+    /// <returns>是否成功完成回零</returns>
+    Task<bool> WaitHomeCompleteAsync(int timeoutMs = 30000);
 }
