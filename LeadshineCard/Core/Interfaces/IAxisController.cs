@@ -132,4 +132,57 @@ public interface IAxisController
     /// <param name="timeoutMs">超时时间(毫秒)，0表示无限等待</param>
     /// <returns>是否成功完成回零</returns>
     Task<bool> WaitHomeCompleteAsync(int timeoutMs = 30000);
+
+    /// <summary>
+    /// 设置 PVT 表 (Position-Velocity-Time)
+    /// </summary>
+    /// <param name="times">时间数组 (单位: 秒)</param>
+    /// <param name="positions">位置数组 (单位: mm 或 度)</param>
+    /// <param name="velocities">速度数组 (单位: mm/s 或 度/s)</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetPvtTableAsync(double[] times, double[] positions, double[] velocities);
+
+    /// <summary>
+    /// 设置 PVTS 表 (Position-Velocity(start/end)-Time-Smooth)
+    /// </summary>
+    /// <param name="times">时间数组 (单位: 秒)</param>
+    /// <param name="positions">位置数组 (单位: mm 或 度)</param>
+    /// <param name="startVelocity">起始速度 (单位: mm/s 或 度/s)</param>
+    /// <param name="endVelocity">结束速度 (单位: mm/s 或 度/s)</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetPvtsTableAsync(
+        double[] times,
+        double[] positions,
+        double startVelocity,
+        double endVelocity
+    );
+
+    /// <summary>
+    /// 设置 PTS 表 (Position-Time-Smooth with percent)
+    /// </summary>
+    /// <param name="times">时间数组 (单位: 秒)</param>
+    /// <param name="positions">位置数组 (单位: mm 或 度)</param>
+    /// <param name="percents">百分比数组 (0-1之间)</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetPtsTableAsync(double[] times, double[] positions, double[] percents);
+
+    /// <summary>
+    /// 设置 PTT 表 (Position-Time-Time)
+    /// </summary>
+    /// <param name="times">时间数组 (单位: 秒)</param>
+    /// <param name="positions">位置数组 (单位: mm 或 度)</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetPttTableAsync(double[] times, double[] positions);
+
+    /// <summary>
+    /// 开始 PVT 运动
+    /// </summary>
+    /// <returns>是否成功</returns>
+    Task<bool> StartPvtMoveAsync();
+
+    /// <summary>
+    /// 获取 PVT 缓冲区剩余空间
+    /// </summary>
+    /// <returns>剩余空间大小</returns>
+    Task<short> GetPvtRemainSpaceAsync();
 }

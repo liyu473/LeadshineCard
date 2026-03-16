@@ -790,4 +790,340 @@ public class LeadshineAxisController(
             throw new AxisException($"等待回零完成异常", axisNo, ex);
         }
     }
+
+    /// <summary>
+    /// 设置 PVT 表 (Position-Velocity-Time)
+    /// </summary>
+    public async Task<bool> SetPvtTableAsync(
+        double[] times,
+        double[] positions,
+        double[] velocities
+    )
+    {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(positions);
+        ArgumentNullException.ThrowIfNull(velocities);
+
+        if (times.Length != positions.Length || times.Length != velocities.Length)
+        {
+            throw new ArgumentException("时间、位置、速度数组长度必须相同");
+        }
+
+        if (times.Length == 0)
+        {
+            throw new ArgumentException("数组不能为空");
+        }
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "设置轴 {AxisNo} PVT 表，点数: {Count}",
+                axisNo,
+                times.Length
+            );
+        }
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_pvt_table_unit(
+                        cardNo,
+                        axisNo,
+                        (uint)times.Length,
+                        times,
+                        positions,
+                        velocities
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置轴 {AxisNo} PVT 表失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisException($"设置 PVT 表失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} PVT 表设置成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} PVT 表异常", axisNo);
+            throw new AxisException($"设置 PVT 表异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 设置 PVTS 表 (Position-Velocity(start/end)-Time-Smooth)
+    /// </summary>
+    public async Task<bool> SetPvtsTableAsync(
+        double[] times,
+        double[] positions,
+        double startVelocity,
+        double endVelocity
+    )
+    {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(positions);
+
+        if (times.Length != positions.Length)
+        {
+            throw new ArgumentException("时间、位置数组长度必须相同");
+        }
+
+        if (times.Length == 0)
+        {
+            throw new ArgumentException("数组不能为空");
+        }
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "设置轴 {AxisNo} PVTS 表，点数: {Count}, 起始速度: {StartVel}, 结束速度: {EndVel}",
+                axisNo,
+                times.Length,
+                startVelocity,
+                endVelocity
+            );
+        }
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_pvts_table_unit(
+                        cardNo,
+                        axisNo,
+                        (uint)times.Length,
+                        times,
+                        positions,
+                        startVelocity,
+                        endVelocity
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置轴 {AxisNo} PVTS 表失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisException($"设置 PVTS 表失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} PVTS 表设置成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} PVTS 表异常", axisNo);
+            throw new AxisException($"设置 PVTS 表异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 设置 PTS 表 (Position-Time-Smooth with percent)
+    /// </summary>
+    public async Task<bool> SetPtsTableAsync(
+        double[] times,
+        double[] positions,
+        double[] percents
+    )
+    {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(positions);
+        ArgumentNullException.ThrowIfNull(percents);
+
+        if (times.Length != positions.Length || times.Length != percents.Length)
+        {
+            throw new ArgumentException("时间、位置、百分比数组长度必须相同");
+        }
+
+        if (times.Length == 0)
+        {
+            throw new ArgumentException("数组不能为空");
+        }
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("设置轴 {AxisNo} PTS 表，点数: {Count}", axisNo, times.Length);
+        }
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_pts_table_unit(
+                        cardNo,
+                        axisNo,
+                        (uint)times.Length,
+                        times,
+                        positions,
+                        percents
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置轴 {AxisNo} PTS 表失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisException($"设置 PTS 表失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} PTS 表设置成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} PTS 表异常", axisNo);
+            throw new AxisException($"设置 PTS 表异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 设置 PTT 表 (Position-Time-Time)
+    /// </summary>
+    public async Task<bool> SetPttTableAsync(double[] times, double[] positions)
+    {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(positions);
+
+        if (times.Length != positions.Length)
+        {
+            throw new ArgumentException("时间、位置数组长度必须相同");
+        }
+
+        if (times.Length == 0)
+        {
+            throw new ArgumentException("数组不能为空");
+        }
+
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("设置轴 {AxisNo} PTT 表，点数: {Count}", axisNo, times.Length);
+        }
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_ptt_table_unit(
+                        cardNo,
+                        axisNo,
+                        (uint)times.Length,
+                        times,
+                        positions
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置轴 {AxisNo} PTT 表失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisException($"设置 PTT 表失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} PTT 表设置成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} PTT 表异常", axisNo);
+            throw new AxisException($"设置 PTT 表异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 开始 PVT 运动
+    /// </summary>
+    public async Task<bool> StartPvtMoveAsync()
+    {
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("轴 {AxisNo} 开始 PVT 运动", axisNo);
+        }
+
+        try
+        {
+            // 对于单轴 PVT 运动，创建包含当前轴的数组
+            ushort[] axisList = [axisNo];
+
+            var result = await Task.Run(() => LTDMC.dmc_pvt_move(cardNo, 1, axisList));
+
+            if (result != 0)
+            {
+                _logger.LogError("轴 {AxisNo} PVT 运动启动失败，错误码: {ErrorCode}", axisNo, result);
+                throw new AxisMotionException($"PVT 运动启动失败", axisNo, result);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("轴 {AxisNo} PVT 运动命令发送成功", axisNo);
+            }
+            return true;
+        }
+        catch (AxisMotionException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "轴 {AxisNo} PVT 运动异常", axisNo);
+            throw new AxisMotionException($"PVT 运动异常", axisNo);
+        }
+    }
+
+    /// <summary>
+    /// 获取 PVT 缓冲区剩余空间
+    /// </summary>
+    public async Task<short> GetPvtRemainSpaceAsync()
+    {
+        try
+        {
+            var result = await Task.Run(() => LTDMC.dmc_pvt_get_remain_space(cardNo, axisNo));
+
+            if (result < 0)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(
+                        "获取轴 {AxisNo} PVT 缓冲区剩余空间失败，错误码: {ErrorCode}",
+                        axisNo,
+                        result
+                    );
+                }
+                return 0;
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取轴 {AxisNo} PVT 缓冲区剩余空间异常", axisNo);
+            return 0;
+        }
+    }
 }
