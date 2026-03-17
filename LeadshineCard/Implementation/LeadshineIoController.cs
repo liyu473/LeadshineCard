@@ -41,10 +41,7 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public async Task<bool> WriteOutputBitAsync(ushort bitNo, bool value)
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("写入输出位 {BitNo} = {Value}", bitNo, value);
-        }
+        _logger.LogDebug("写入输出位 {BitNo} = {Value}", bitNo, value);
 
         try
         {
@@ -122,10 +119,7 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public async Task<bool> WriteOutputPortAsync(ushort portNo, uint value)
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("写入输出端口 {PortNo} = 0x{Value:X}", portNo, value);
-        }
+        _logger.LogDebug("写入输出端口 {PortNo} = 0x{Value:X}", portNo, value);
 
         try
         {
@@ -153,21 +147,22 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     {
         if (count == 0)
             throw new ArgumentException("数量必须大于0", nameof(count));
-
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("批量读取输入位，起始: {StartBit}, 数量: {Count}", startBit, count);
-        }
+        _logger.LogDebug("批量读取输入位，起始: {StartBit}, 数量: {Count}", startBit, count);
 
         try
         {
             var results = new bool[count];
+            var tasks = new Task<bool>[count];
 
+            // 并行读取
             for (ushort i = 0; i < count; i++)
             {
                 var bitNo = (ushort)(startBit + i);
-                results[i] = await ReadInputBitAsync(bitNo);
+                tasks[i] = ReadInputBitAsync(bitNo);
             }
+
+            var taskResults = await Task.WhenAll(tasks);
+            Array.Copy(taskResults, results, count);
 
             return results;
         }
@@ -186,7 +181,6 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         if (values == null || values.Length == 0)
             throw new ArgumentException("值数组不能为空", nameof(values));
 
-        if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug(
                 "批量写入输出位，起始: {StartBit}, 数量: {Count}",
@@ -197,26 +191,85 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
 
         try
         {
+            var tasks = new Task<bool>[values.Length];
+
+            // 并行写入
             for (ushort i = 0; i < values.Length; i++)
             {
                 var bitNo = (ushort)(startBit + i);
-                var success = await WriteOutputBitAsync(bitNo, values[i]);
-
-                if (!success)
-                {
-                    if (_logger.IsEnabled(LogLevel.Warning))
-                    {
-                        _logger.LogWarning("写入输出位 {BitNo} 失败", bitNo);
-                    }
-                    return false;
-                }
+                tasks[i] = WriteOutputBitAsync(bitNo, values[i]);
             }
 
-            return true;
+            var results = await Task.WhenAll(tasks);
+
+            // 检查是否全部成功
+            var allSuccess = results.All(r => r);
+
+            if (!allSuccess && _logger.IsEnabled(LogLevel.Warning))
+                _logger.LogWarning("部分输出位写入失败");
+
+            return allSuccess;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "批量写入输出位异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 并行读取多个输入位
+    /// </summary>
+    public async Task<bool[]> ReadInputBitsParallelAsync(ushort[] bitNumbers)
+    {
+        if (bitNumbers == null || bitNumbers.Length == 0)
+            throw new ArgumentException("位号数组不能为空", nameof(bitNumbers));
+        _logger.LogDebug("并行读取 {Count} 个输入位", bitNumbers.Length);
+
+        try
+        {
+            var tasks = bitNumbers.Select(bitNo => ReadInputBitAsync(bitNo)).ToArray();
+            return await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "并行读取输入位异常");
+            return new bool[bitNumbers.Length];
+        }
+    }
+
+    /// <summary>
+    /// 并行写入多个输出位
+    /// </summary>
+    public async Task<bool> WriteOutputBitsParallelAsync(ushort[] bitNumbers, bool[] values)
+    {
+        if (bitNumbers == null || bitNumbers.Length == 0)
+            throw new ArgumentException("位号数组不能为空", nameof(bitNumbers));
+
+        if (values == null || values.Length != bitNumbers.Length)
+            throw new ArgumentException("值数组长度必须与位号数组相同", nameof(values));
+        _logger.LogDebug("并行写入 {Count} 个输出位", bitNumbers.Length);
+
+        try
+        {
+            var tasks = new Task<bool>[bitNumbers.Length];
+
+            for (int i = 0; i < bitNumbers.Length; i++)
+            {
+                tasks[i] = WriteOutputBitAsync(bitNumbers[i], values[i]);
+            }
+
+            var results = await Task.WhenAll(tasks);
+            var allSuccess = results.All(r => r);
+
+            if (!allSuccess && _logger.IsEnabled(LogLevel.Warning))
+                _logger.LogWarning("部分输出位写入失败");
+
+            return allSuccess;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "并行写入输出位异常");
             return false;
         }
     }

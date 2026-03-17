@@ -1,3 +1,5 @@
+using LeadshineCard.Core.Models;
+
 namespace LeadshineCard.Core.Interfaces;
 
 /// <summary>
@@ -21,7 +23,7 @@ public interface IInterpolationController
     /// <param name="centerPositions">圆心位置数组</param>
     /// <param name="clockwise">是否顺时针</param>
     /// <returns>是否成功</returns>
-    Task<bool> ArcInterpolationAsync(ushort[] axes, double[] targetPositions, 
+    Task<bool> ArcInterpolationAsync(ushort[] axes, double[] targetPositions,
                                       double[] centerPositions, bool clockwise);
 
     /// <summary>
@@ -57,7 +59,7 @@ public interface IInterpolationController
     /// <param name="clockwise">是否顺时针</param>
     /// <param name="mark">段标号</param>
     /// <returns>是否成功</returns>
-    Task<bool> AddArcSegmentAsync(ushort crd, double[] targetPositions, 
+    Task<bool> AddArcSegmentAsync(ushort crd, double[] targetPositions,
                                    double[] centerPositions, bool clockwise, int mark = 0);
 
     /// <summary>
@@ -101,4 +103,28 @@ public interface IInterpolationController
     /// <param name="crd">坐标系号</param>
     /// <returns>是否完成</returns>
     Task<bool> CheckContinuousDoneAsync(ushort crd);
+
+    /// <summary>
+    /// 等待连续插补完成
+    /// </summary>
+    /// <param name="crd">坐标系号</param>
+    /// <param name="timeoutMs">超时时间(毫秒)</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>是否成功完成</returns>
+    Task<bool> WaitContinuousCompleteAsync(ushort crd, int timeoutMs = 60000, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 设置插补速度参数
+    /// </summary>
+    /// <param name="crd">坐标系号</param>
+    /// <param name="parameters">插补参数</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetInterpolationParametersAsync(ushort crd, InterpolationParameters parameters);
+
+    /// <summary>
+    /// 获取插补速度参数
+    /// </summary>
+    /// <param name="crd">坐标系号</param>
+    /// <returns>插补参数</returns>
+    Task<InterpolationParameters?> GetInterpolationParametersAsync(ushort crd);
 }

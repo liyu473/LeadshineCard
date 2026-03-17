@@ -130,8 +130,9 @@ public interface IAxisController
     /// 等待回零完成
     /// </summary>
     /// <param name="timeoutMs">超时时间(毫秒)，0表示无限等待</param>
+    /// <param name="cancellationToken">取消令牌</param>
     /// <returns>是否成功完成回零</returns>
-    Task<bool> WaitHomeCompleteAsync(int timeoutMs = 30000);
+    Task<bool> WaitHomeCompleteAsync(int timeoutMs = 30000, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 设置 PVT 表 (Position-Velocity-Time)
@@ -185,4 +186,24 @@ public interface IAxisController
     /// </summary>
     /// <returns>剩余空间大小</returns>
     Task<short> GetPvtRemainSpaceAsync();
+
+    /// <summary>
+    /// 等待运动完成
+    /// </summary>
+    /// <param name="timeoutMs">超时时间(毫秒)，0表示无限等待</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>是否成功完成运动</returns>
+    Task<bool> WaitMotionCompleteAsync(int timeoutMs = 30000, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 设置软限位
+    /// </summary>
+    /// <param name="softLimit">软限位配置</param>
+    void SetSoftLimit(SoftLimit softLimit);
+
+    /// <summary>
+    /// 获取软限位
+    /// </summary>
+    /// <returns>软限位配置</returns>
+    SoftLimit? GetSoftLimit();
 }

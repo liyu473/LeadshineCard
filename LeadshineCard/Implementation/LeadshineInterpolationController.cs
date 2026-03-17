@@ -1,4 +1,8 @@
+using LeadshineCard.Core.Events;
+using LeadshineCard.Core.Exceptions;
+using LeadshineCard.Core.Helpers;
 using LeadshineCard.Core.Interfaces;
+using LeadshineCard.Core.Models;
 using LeadshineCard.ThirdPart;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,6 +24,13 @@ public class LeadshineInterpolationController(
 {
     private readonly ILogger<LeadshineInterpolationController> _logger =
         logger ?? NullLogger<LeadshineInterpolationController>.Instance;
+    private readonly Dictionary<ushort, InterpolationParameters> _parametersCache = [];
+    private const int MinBufferSpace = 10; // 最小缓冲区空间阈值
+
+    // 事件定义
+    public event EventHandler<InterpolationCompletedEventArgs>? InterpolationCompleted;
+    public event EventHandler<SegmentCompletedEventArgs>? SegmentCompleted;
+    public event EventHandler<BufferStatusEventArgs>? BufferLow;
 
     /// <summary>
     /// 直线插补
@@ -34,11 +45,7 @@ public class LeadshineInterpolationController(
                 "目标位置数组长度必须与轴数组相同",
                 nameof(targetPositions)
             );
-
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("直线插补，轴数: {AxisCount}", axes.Length);
-        }
+        _logger.LogInformation("直线插补，轴数: {AxisCount}", axes.Length);
 
         try
         {
@@ -51,11 +58,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("直线插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("直线插补命令发送成功");
-            }
+            _logger.LogDebug("直线插补命令发送成功");
             return true;
         }
         catch (Exception ex)
@@ -90,7 +93,6 @@ public class LeadshineInterpolationController(
                 nameof(centerPositions)
             );
 
-        if (_logger.IsEnabled(LogLevel.Information))
         {
             var direction = clockwise ? "顺时针" : "逆时针";
             _logger.LogInformation(
@@ -123,11 +125,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("圆弧插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("圆弧插补命令发送成功");
-            }
+            _logger.LogDebug("圆弧插补命令发送成功");
             return true;
         }
         catch (Exception ex)
@@ -145,7 +143,6 @@ public class LeadshineInterpolationController(
         if (axes == null || axes.Length == 0)
             throw new ArgumentException("轴数组不能为空", nameof(axes));
 
-        if (_logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation(
                 "打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}",
@@ -165,11 +162,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("打开连续插补缓冲区失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("连续插补缓冲区已打开");
-            }
+            _logger.LogDebug("连续插补缓冲区已打开");
             return true;
         }
         catch (Exception ex)
@@ -184,10 +177,7 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> CloseContinuousBufferAsync(ushort crd)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("关闭坐标系 {Crd} 连续插补缓冲区", crd);
-        }
+        _logger.LogInformation("关闭坐标系 {Crd} 连续插补缓冲区", crd);
 
         try
         {
@@ -198,11 +188,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("关闭连续插补缓冲区失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("连续插补缓冲区已关闭");
-            }
+            _logger.LogDebug("连续插补缓冲区已关闭");
             return true;
         }
         catch (Exception ex)
@@ -220,10 +206,9 @@ public class LeadshineInterpolationController(
         if (targetPositions == null || targetPositions.Length == 0)
             throw new ArgumentException("目标位置数组不能为空", nameof(targetPositions));
 
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("添加直线段到坐标系 {Crd}，标号: {Mark}", crd, mark);
-        }
+        // 自动检查并等待缓冲区空间
+        await EnsureBufferSpaceAsync(crd, 1);
+        _logger.LogDebug("添加直线段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
@@ -250,15 +235,67 @@ public class LeadshineInterpolationController(
             if (result != 0)
             {
                 _logger.LogError("添加直线段失败，错误码: {ErrorCode}", result);
-                return false;
+                throw new MotionCardException($"添加直线段失败", result);
             }
 
             return true;
         }
+        catch (MotionCardException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "添加直线段异常");
-            return false;
+            throw new MotionCardException("添加直线段异常", ex);
+        }
+    }
+
+    /// <summary>
+    /// 确保缓冲区有足够空间
+    /// </summary>
+    private async Task EnsureBufferSpaceAsync(ushort crd, int requiredSpace, int maxWaitMs = 5000)
+    {
+        var startTime = DateTime.Now;
+        var timeout = TimeSpan.FromMilliseconds(maxWaitMs);
+
+        while (true)
+        {
+            var remainSpace = await GetRemainingBufferSpaceAsync(crd);
+
+            if (remainSpace >= requiredSpace)
+            {
+                // 检查是否需要触发缓冲区低事件
+                if (remainSpace < MinBufferSpace)
+                {
+                    BufferLow?.Invoke(
+                        this,
+                        new BufferStatusEventArgs
+                        {
+                            CoordinateSystem = crd,
+                            RemainingSpace = remainSpace,
+                            IsLow = true,
+                        }
+                    );
+                }
+                return;
+            }
+
+            if (DateTime.Now - startTime > timeout)
+            {
+                throw new MotionCardException(
+                    $"插补缓冲区空间不足: 需要 {requiredSpace}，剩余 {remainSpace}"
+                );
+            }
+
+            _logger.LogDebug(
+                "坐标系 {Crd} 缓冲区空间不足，等待中... 需要: {Required}, 剩余: {Remain}",
+                crd,
+                requiredSpace,
+                remainSpace
+            );
+
+            await Task.Delay(100);
         }
     }
 
@@ -282,10 +319,9 @@ public class LeadshineInterpolationController(
                 nameof(centerPositions)
             );
 
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("添加圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
-        }
+        // 自动检查并等待缓冲区空间
+        await EnsureBufferSpaceAsync(crd, 1);
+        _logger.LogDebug("添加圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
@@ -315,15 +351,19 @@ public class LeadshineInterpolationController(
             if (result != 0)
             {
                 _logger.LogError("添加圆弧段失败，错误码: {ErrorCode}", result);
-                return false;
+                throw new MotionCardException($"添加圆弧段失败", result);
             }
 
             return true;
         }
+        catch (MotionCardException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "添加圆弧段异常");
-            return false;
+            throw new MotionCardException("添加圆弧段异常", ex);
         }
     }
 
@@ -332,10 +372,7 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> StartContinuousAsync(ushort crd)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("开始坐标系 {Crd} 连续插补", crd);
-        }
+        _logger.LogInformation("开始坐标系 {Crd} 连续插补", crd);
 
         try
         {
@@ -346,11 +383,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("开始连续插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("连续插补已开始");
-            }
+            _logger.LogDebug("连续插补已开始");
             return true;
         }
         catch (Exception ex)
@@ -365,10 +398,7 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> PauseContinuousAsync(ushort crd)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("暂停坐标系 {Crd} 连续插补", crd);
-        }
+        _logger.LogInformation("暂停坐标系 {Crd} 连续插补", crd);
 
         try
         {
@@ -379,11 +409,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("暂停连续插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("连续插补已暂停");
-            }
+            _logger.LogDebug("连续插补已暂停");
             return true;
         }
         catch (Exception ex)
@@ -398,10 +424,7 @@ public class LeadshineInterpolationController(
     /// </summary>
     public async Task<bool> StopContinuousAsync(ushort crd)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("停止坐标系 {Crd} 连续插补", crd);
-        }
+        _logger.LogInformation("停止坐标系 {Crd} 连续插补", crd);
 
         try
         {
@@ -412,11 +435,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("停止连续插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("连续插补已停止");
-            }
+            _logger.LogDebug("连续插补已停止");
             return true;
         }
         catch (Exception ex)
@@ -489,7 +508,6 @@ public class LeadshineInterpolationController(
         double stopVel
     )
     {
-        if (_logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation(
                 "设置坐标系 {Crd} 插补速度参数: MinVel={MinVel}, MaxVel={MaxVel}, Tacc={Tacc}, Tdec={Tdec}, StopVel={StopVel}",
@@ -522,11 +540,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("设置插补速度参数失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("插补速度参数设置成功");
-            }
+            _logger.LogDebug("插补速度参数设置成功");
             return true;
         }
         catch (Exception ex)
@@ -539,9 +553,13 @@ public class LeadshineInterpolationController(
     /// <summary>
     /// 获取插补速度参数
     /// </summary>
-    public async Task<(double minVel, double maxVel, double tacc, double tdec, double stopVel)?> GetVectorProfileAsync(
-        ushort crd
-    )
+    public async Task<(
+        double minVel,
+        double maxVel,
+        double tacc,
+        double tdec,
+        double stopVel
+    )?> GetVectorProfileAsync(ushort crd)
     {
         try
         {
@@ -599,7 +617,6 @@ public class LeadshineInterpolationController(
                 nameof(targetPositions)
             );
 
-        if (_logger.IsEnabled(LogLevel.Information))
         {
             var direction = clockwise ? "顺时针" : "逆时针";
             _logger.LogInformation(
@@ -633,11 +650,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("半径式圆弧插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("半径式圆弧插补命令发送成功");
-            }
+            _logger.LogDebug("半径式圆弧插补命令发送成功");
             return true;
         }
         catch (Exception ex)
@@ -667,15 +680,8 @@ public class LeadshineInterpolationController(
             );
 
         if (midPositions == null || midPositions.Length != axes.Length)
-            throw new ArgumentException(
-                "中间点位置数组长度必须与轴数组相同",
-                nameof(midPositions)
-            );
-
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("三点式圆弧插补，轴数: {AxisCount}", axes.Length);
-        }
+            throw new ArgumentException("中间点位置数组长度必须与轴数组相同", nameof(midPositions));
+        _logger.LogInformation("三点式圆弧插补，轴数: {AxisCount}", axes.Length);
 
         try
         {
@@ -698,11 +704,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("三点式圆弧插补失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("三点式圆弧插补命令发送成功");
-            }
+            _logger.LogDebug("三点式圆弧插补命令发送成功");
             return true;
         }
         catch (Exception ex)
@@ -726,11 +728,7 @@ public class LeadshineInterpolationController(
     {
         if (targetPositions == null || targetPositions.Length < 2)
             throw new ArgumentException("圆弧至少需要2个轴的目标位置", nameof(targetPositions));
-
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("添加半径式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
-        }
+        _logger.LogDebug("添加半径式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
@@ -791,11 +789,7 @@ public class LeadshineInterpolationController(
                 "中间点位置数组长度必须与目标位置数组相同",
                 nameof(midPositions)
             );
-
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("添加三点式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
-        }
+        _logger.LogDebug("添加三点式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
@@ -845,7 +839,6 @@ public class LeadshineInterpolationController(
         double maxArcError
     )
     {
-        if (_logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation(
                 "设置坐标系 {Crd} 圆弧限制: Enable={Enable}, MaxCenAcc={MaxCenAcc}, MaxArcError={MaxArcError}",
@@ -868,11 +861,7 @@ public class LeadshineInterpolationController(
                 _logger.LogError("设置圆弧限制失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("圆弧限制设置成功");
-            }
+            _logger.LogDebug("圆弧限制设置成功");
             return true;
         }
         catch (Exception ex)
@@ -930,7 +919,10 @@ public class LeadshineInterpolationController(
             throw new ArgumentException("起始位置数组至少需要2个元素", nameof(startPos));
 
         if (targetPos == null || targetPos.Length != startPos.Length)
-            throw new ArgumentException("目标位置数组长度必须与起始位置数组相同", nameof(targetPos));
+            throw new ArgumentException(
+                "目标位置数组长度必须与起始位置数组相同",
+                nameof(targetPos)
+            );
 
         if (cenPos == null || cenPos.Length != startPos.Length)
             throw new ArgumentException("圆心位置数组长度必须与起始位置数组相同", nameof(cenPos));
@@ -984,7 +976,10 @@ public class LeadshineInterpolationController(
             throw new ArgumentException("中间点位置数组长度必须与起始位置数组相同", nameof(midPos));
 
         if (targetPos == null || targetPos.Length != startPos.Length)
-            throw new ArgumentException("目标位置数组长度必须与起始位置数组相同", nameof(targetPos));
+            throw new ArgumentException(
+                "目标位置数组长度必须与起始位置数组相同",
+                nameof(targetPos)
+            );
 
         try
         {
@@ -1031,7 +1026,10 @@ public class LeadshineInterpolationController(
             throw new ArgumentException("起始位置数组至少需要2个元素", nameof(startPos));
 
         if (targetPos == null || targetPos.Length != startPos.Length)
-            throw new ArgumentException("目标位置数组长度必须与起始位置数组相同", nameof(targetPos));
+            throw new ArgumentException(
+                "目标位置数组长度必须与起始位置数组相同",
+                nameof(targetPos)
+            );
 
         try
         {
@@ -1061,6 +1059,173 @@ public class LeadshineInterpolationController(
         catch (Exception ex)
         {
             _logger.LogError(ex, "计算半径圆弧弧长异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 等待连续插补完成
+    /// </summary>
+    public async Task<bool> WaitContinuousCompleteAsync(
+        ushort crd,
+        int timeoutMs = 60000,
+        CancellationToken cancellationToken = default
+    )
+    {
+        _logger.LogInformation("等待坐标系 {Crd} 插补完成，超时时间: {Timeout}ms", crd, timeoutMs);
+
+        try
+        {
+            var result = await AsyncHelper.PollWithBackoffAsync(
+                () => CheckContinuousDoneAsync(crd),
+                isDone => isDone,
+                timeoutMs,
+                100, // 初始延迟 100ms
+                500, // 最大延迟 500ms
+                cancellationToken
+            );
+
+            if (result)
+            {
+                _logger.LogInformation("坐标系 {Crd} 插补完成", crd);
+
+                // 触发插补完成事件
+                InterpolationCompleted?.Invoke(
+                    this,
+                    new InterpolationCompletedEventArgs { CoordinateSystem = crd, Success = true }
+                );
+            }
+
+            return result;
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogWarning("坐标系 {Crd} 插补等待超时", crd);
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("坐标系 {Crd} 插补等待被取消", crd);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "等待坐标系 {Crd} 插补完成异常", crd);
+            throw new MotionCardException($"等待插补完成异常", ex);
+        }
+    }
+
+    /// <summary>
+    /// 设置插补速度参数
+    /// </summary>
+    public async Task<bool> SetInterpolationParametersAsync(
+        ushort crd,
+        InterpolationParameters parameters
+    )
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        parameters.Validate();
+
+        _logger.LogInformation(
+            "设置坐标系 {Crd} 插补参数: MaxSpeed={MaxSpeed}, Acc={Acc}, Dec={Dec}",
+            crd,
+            parameters.MaxSpeed,
+            parameters.AccelerationTime,
+            parameters.DecelerationTime
+        );
+
+        try
+        {
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_set_vector_profile_unit(
+                        cardNo,
+                        crd,
+                        parameters.MinSpeed,
+                        parameters.MaxSpeed,
+                        parameters.AccelerationTime,
+                        parameters.DecelerationTime,
+                        parameters.StopSpeed
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("设置插补参数失败，错误码: {ErrorCode}", result);
+                throw new MotionCardException($"设置插补参数失败", result);
+            }
+
+            // 缓存参数
+            _parametersCache[crd] = parameters;
+            _logger.LogDebug("坐标系 {Crd} 插补参数设置成功", crd);
+            return true;
+        }
+        catch (MotionCardException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置坐标系 {Crd} 插补参数异常", crd);
+            throw new MotionCardException($"设置插补参数异常", ex);
+        }
+    }
+
+    /// <summary>
+    /// 获取插补速度参数
+    /// </summary>
+    public async Task<InterpolationParameters?> GetInterpolationParametersAsync(ushort crd)
+    {
+        // 先检查缓存
+        if (_parametersCache.TryGetValue(crd, out var cached))
+        {
+            return cached;
+        }
+
+        try
+        {
+            double minVel = 0,
+                maxVel = 0,
+                tacc = 0,
+                tdec = 0,
+                stopVel = 0;
+
+            var result = await Task.Run(
+                () =>
+                    LTDMC.dmc_get_vector_profile_unit(
+                        cardNo,
+                        crd,
+                        ref minVel,
+                        ref maxVel,
+                        ref tacc,
+                        ref tdec,
+                        ref stopVel
+                    )
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError("获取插补参数失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            var parameters = new InterpolationParameters
+            {
+                MinSpeed = minVel,
+                MaxSpeed = maxVel,
+                AccelerationTime = tacc,
+                DecelerationTime = tdec,
+                StopSpeed = stopVel,
+            };
+
+            // 缓存参数
+            _parametersCache[crd] = parameters;
+
+            return parameters;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取坐标系 {Crd} 插补参数异常", crd);
             return null;
         }
     }

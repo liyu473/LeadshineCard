@@ -100,6 +100,9 @@ dotnet_sort_system_directives_first = true
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = false
 
+# Suppress CA1873 - logging parameter boxing is acceptable for this project
+dotnet_diagnostic.CA1873.severity = none
+
 # Expression-level preferences
 dotnet_style_object_initializer = true:suggestion
 dotnet_style_collection_initializer = true:suggestion
