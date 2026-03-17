@@ -267,7 +267,7 @@ public class LeadshineInterpolationController(
 
         while (true)
         {
-            var remainSpace = await GetRemainingBufferSpaceAsync(crd);
+            var remainSpace = GetRemainingBufferSpace(crd); // 直接调用同步方法
 
             if (remainSpace >= requiredSpace)
             {
@@ -456,13 +456,13 @@ public class LeadshineInterpolationController(
     }
 
     /// <summary>
-    /// 获取剩余缓冲区空间
+    /// 获取剩余缓冲区空间（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<int> GetRemainingBufferSpaceAsync(ushort crd)
+    public int GetRemainingBufferSpace(ushort crd)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_remain_space(cardNo, crd));
+            var result = LTDMC.dmc_conti_remain_space(cardNo, crd);
             return result;
         }
         catch (Exception ex)
@@ -473,13 +473,13 @@ public class LeadshineInterpolationController(
     }
 
     /// <summary>
-    /// 获取当前段标号
+    /// 获取当前段标号（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<int> GetCurrentMarkAsync(ushort crd)
+    public int GetCurrentMark(ushort crd)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_read_current_mark(cardNo, crd));
+            var result = LTDMC.dmc_conti_read_current_mark(cardNo, crd);
             return result;
         }
         catch (Exception ex)
@@ -490,13 +490,13 @@ public class LeadshineInterpolationController(
     }
 
     /// <summary>
-    /// 检查连续插补是否完成
+    /// 检查连续插补是否完成（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<bool> CheckContinuousDoneAsync(ushort crd)
+    public bool CheckContinuousDone(ushort crd)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_check_done(cardNo, crd));
+            var result = LTDMC.dmc_conti_check_done(cardNo, crd);
             return result == 1;
         }
         catch (Exception ex)
@@ -1103,7 +1103,7 @@ public class LeadshineInterpolationController(
         try
         {
             var result = await AsyncHelper.PollWithBackoffAsync(
-                () => CheckContinuousDoneAsync(crd),
+                () => Task.FromResult(CheckContinuousDone(crd)), // 包装同步方法
                 isDone => isDone,
                 timeoutMs,
                 100, // 初始延迟 100ms

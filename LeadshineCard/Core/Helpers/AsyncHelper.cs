@@ -7,14 +7,16 @@ internal static class AsyncHelper
 {
     /// <summary>
     /// 快速 API 调用（不使用 Task.Run）
+    /// 用于高频轮询场景，直接同步调用后返回 ValueTask
     /// </summary>
-    public static T FastCall<T>(Func<T> func)
+    public static ValueTask<T> FastCallAsync<T>(Func<T> func)
     {
-        return func();
+        return new ValueTask<T>(func());
     }
 
     /// <summary>
     /// 异步 API 调用（使用 Task.Run）
+    /// 用于低频、可能阻塞的操作
     /// </summary>
     public static Task<T> AsyncCall<T>(Func<T> func)
     {

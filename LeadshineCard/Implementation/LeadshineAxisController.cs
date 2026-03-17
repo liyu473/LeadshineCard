@@ -233,7 +233,7 @@ public class LeadshineAxisController(
         }
 
         // 检查软限位
-        var currentPos = await GetCurrentPositionAsync();
+        var currentPos = GetCurrentPosition(); // 直接调用同步方法
         var targetPos = currentPos + distance;
         CheckSoftLimit(targetPos);
 
@@ -361,17 +361,14 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 获取当前位置
+    /// 获取当前位置（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<double> GetCurrentPositionAsync()
+    public double GetCurrentPosition()
     {
         try
         {
             double position = 0;
-
-            var result = await Task.Run(
-                () => LTDMC.dmc_get_position_unit(cardNo, axisNo, ref position)
-            );
+            var result = LTDMC.dmc_get_position_unit(cardNo, axisNo, ref position);
 
             if (result != 0)
             {
@@ -421,16 +418,14 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 获取当前速度
+    /// 获取当前速度（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<double> GetCurrentSpeedAsync()
+    public double GetCurrentSpeed()
     {
         try
         {
             double speed = 0;
-            var result = await Task.Run(
-                () => LTDMC.dmc_read_current_speed_unit(cardNo, axisNo, ref speed)
-            );
+            var result = LTDMC.dmc_read_current_speed_unit(cardNo, axisNo, ref speed);
 
             if (result != 0)
             {
@@ -452,16 +447,14 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 获取目标位置
+    /// 获取目标位置（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<double> GetTargetPositionAsync()
+    public double GetTargetPosition()
     {
         try
         {
             double targetPos = 0;
-            var result = await Task.Run(
-                () => LTDMC.dmc_get_target_position_unit(cardNo, axisNo, ref targetPos)
-            );
+            var result = LTDMC.dmc_get_target_position_unit(cardNo, axisNo, ref targetPos);
 
             if (result != 0)
             {
@@ -487,34 +480,35 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 获取轴状态（并行查询优化）
+    /// 获取轴状态（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<AxisStatus> GetStatusAsync()
+    public AxisStatus GetStatus()
     {
         try
         {
             var status = new AxisStatus { AxisNo = axisNo, Timestamp = DateTime.Now };
 
-            // 并行获取位置、速度、目标位置、IO状态和运动完成状态
-            var positionTask = GetCurrentPositionAsync();
-            var speedTask = GetCurrentSpeedAsync();
-            var targetTask = GetTargetPositionAsync();
-            var ioStatusTask = Task.Run(() => LTDMC.dmc_axis_io_status(cardNo, axisNo));
-            var doneTask = CheckDoneAsync();
+            // 直接同步调用，忽略返回值（高频调用场景，性能优先）
+            double position = 0;
+            _ = LTDMC.dmc_get_position_unit(cardNo, axisNo, ref position);
+            status.Position = position;
 
-            await Task.WhenAll(positionTask, speedTask, targetTask, ioStatusTask, doneTask);
+            double speed = 0;
+            _ = LTDMC.dmc_read_current_speed_unit(cardNo, axisNo, ref speed);
+            status.Speed = speed;
 
-            status.Position = positionTask.Result;
-            status.Speed = speedTask.Result;
-            status.TargetPosition = targetTask.Result;
+            double targetPos = 0;
+            _ = LTDMC.dmc_get_target_position_unit(cardNo, axisNo, ref targetPos);
+            status.TargetPosition = targetPos;
 
-            var ioStatus = ioStatusTask.Result;
+            var ioStatus = LTDMC.dmc_axis_io_status(cardNo, axisNo);
             status.PositiveLimit = (ioStatus & 0x01) != 0;
             status.NegativeLimit = (ioStatus & 0x02) != 0;
             status.Home = (ioStatus & 0x04) != 0;
             status.Alarm = (ioStatus & 0x08) != 0;
 
-            status.Done = doneTask.Result;
+            var doneResult = LTDMC.dmc_check_done(cardNo, axisNo);
+            status.Done = doneResult == 1;
             status.State = status.Done ? AxisState.Idle : AxisState.Moving;
 
             // 触发状态变化事件
@@ -533,13 +527,13 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 检查运动是否完成
+    /// 检查运动是否完成（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<bool> CheckDoneAsync()
+    public bool CheckDone()
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_check_done(cardNo, axisNo));
+            var result = LTDMC.dmc_check_done(cardNo, axisNo);
             return result == 1; // 1表示运动完成
         }
         catch (Exception ex)
@@ -569,7 +563,7 @@ public class LeadshineAxisController(
         try
         {
             var result = await AsyncHelper.PollWithBackoffAsync(
-                CheckDoneAsync,
+                () => Task.FromResult(CheckDone()), // 包装同步方法
                 isDone => isDone,
                 timeoutMs,
                 50, // 初始延迟 50ms
@@ -579,7 +573,7 @@ public class LeadshineAxisController(
 
             if (result)
             {
-                var finalPosition = await GetCurrentPositionAsync();
+                var finalPosition = GetCurrentPosition();
                 _logger.LogInformation(
                     "轴 {AxisNo} 运动完成，最终位置: {Position}",
                     axisNo,
@@ -741,14 +735,14 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 获取回零结果
+    /// 获取回零结果（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<ushort> GetHomeResultAsync()
+    public ushort GetHomeResult()
     {
         try
         {
             ushort state = 0;
-            var result = await Task.Run(() => LTDMC.dmc_get_home_result(cardNo, axisNo, ref state));
+            var result = LTDMC.dmc_get_home_result(cardNo, axisNo, ref state);
 
             if (result != 0)
             {
@@ -822,7 +816,7 @@ public class LeadshineAxisController(
         try
         {
             var state = await AsyncHelper.PollWithBackoffAsync(
-                GetHomeResultAsync,
+                () => Task.FromResult(GetHomeResult()), // 包装同步方法
                 s => s != (ushort)HomeResultState.InProgress,
                 timeoutMs,
                 100, // 初始延迟 100ms
@@ -834,7 +828,7 @@ public class LeadshineAxisController(
 
             if (success)
             {
-                var homePosition = await GetCurrentPositionAsync();
+                var homePosition = GetCurrentPosition();
                 _logger.LogInformation(
                     "轴 {AxisNo} 回零成功，位置: {Position}",
                     axisNo,
@@ -957,7 +951,7 @@ public class LeadshineAxisController(
 
         while (true)
         {
-            var remainSpace = await GetPvtRemainSpaceAsync();
+            var remainSpace = GetPvtRemainSpace(); // 直接调用同步方法
 
             if (remainSpace >= requiredSpace)
             {
@@ -1190,23 +1184,21 @@ public class LeadshineAxisController(
     }
 
     /// <summary>
-    /// 获取 PVT 缓冲区剩余空间
+    /// 获取 PVT 缓冲区剩余空间（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<short> GetPvtRemainSpaceAsync()
+    public short GetPvtRemainSpace()
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_pvt_get_remain_space(cardNo, axisNo));
+            var result = LTDMC.dmc_pvt_get_remain_space(cardNo, axisNo);
 
             if (result < 0)
             {
-                {
-                    _logger.LogWarning(
-                        "获取轴 {AxisNo} PVT 缓冲区剩余空间失败，错误码: {ErrorCode}",
-                        axisNo,
-                        result
-                    );
-                }
+                _logger.LogWarning(
+                    "获取轴 {AxisNo} PVT 缓冲区剩余空间失败，错误码: {ErrorCode}",
+                    axisNo,
+                    result
+                );
                 return 0;
             }
 

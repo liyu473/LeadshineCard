@@ -20,13 +20,13 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         logger ?? NullLogger<LeadshineIoController>.Instance;
 
     /// <summary>
-    /// 读取输入位
+    /// 读取输入位（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<bool> ReadInputBitAsync(ushort bitNo)
+    public bool ReadInputBit(ushort bitNo)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_inbit(cardNo, bitNo));
+            var result = LTDMC.dmc_read_inbit(cardNo, bitNo);
             return result == 1;
         }
         catch (Exception ex)
@@ -64,13 +64,13 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     }
 
     /// <summary>
-    /// 读取输出位状态
+    /// 读取输出位状态（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<bool> ReadOutputBitAsync(ushort bitNo)
+    public bool ReadOutputBit(ushort bitNo)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_outbit(cardNo, bitNo));
+            var result = LTDMC.dmc_read_outbit(cardNo, bitNo);
             return result == 1;
         }
         catch (Exception ex)
@@ -81,13 +81,13 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     }
 
     /// <summary>
-    /// 读取输入端口
+    /// 读取输入端口（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<uint> ReadInputPortAsync(ushort portNo)
+    public uint ReadInputPort(ushort portNo)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_inport(cardNo, portNo));
+            var result = LTDMC.dmc_read_inport(cardNo, portNo);
             return result;
         }
         catch (Exception ex)
@@ -98,13 +98,13 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     }
 
     /// <summary>
-    /// 读取输出端口
+    /// 读取输出端口（同步方法，适合高频轮询）
     /// </summary>
-    public async Task<uint> ReadOutputPortAsync(ushort portNo)
+    public uint ReadOutputPort(ushort portNo)
     {
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_read_outport(cardNo, portNo));
+            var result = LTDMC.dmc_read_outport(cardNo, portNo);
             return result;
         }
         catch (Exception ex)
@@ -158,7 +158,7 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
             for (ushort i = 0; i < count; i++)
             {
                 var bitNo = (ushort)(startBit + i);
-                tasks[i] = ReadInputBitAsync(bitNo);
+                tasks[i] = Task.Run(() => ReadInputBit(bitNo)); // 包装同步方法
             }
 
             var taskResults = await Task.WhenAll(tasks);
@@ -226,7 +226,7 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
 
         try
         {
-            var tasks = bitNumbers.Select(bitNo => ReadInputBitAsync(bitNo)).ToArray();
+            var tasks = bitNumbers.Select(bitNo => Task.Run(() => ReadInputBit(bitNo))).ToArray();
             return await Task.WhenAll(tasks);
         }
         catch (Exception ex)

@@ -54,10 +54,10 @@ public interface IAxisController
     Task<bool> StopAsync(StopMode mode);
 
     /// <summary>
-    /// 获取当前位置
+    /// 获取当前位置（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>当前位置 (单位: mm 或 度)</returns>
-    Task<double> GetCurrentPositionAsync();
+    double GetCurrentPosition();
 
     /// <summary>
     /// 设置当前位置
@@ -67,28 +67,28 @@ public interface IAxisController
     Task<bool> SetCurrentPositionAsync(double position);
 
     /// <summary>
-    /// 获取当前速度
+    /// 获取当前速度（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>当前速度 (单位: mm/s 或 度/s)</returns>
-    Task<double> GetCurrentSpeedAsync();
+    double GetCurrentSpeed();
 
     /// <summary>
-    /// 获取目标位置
+    /// 获取目标位置（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>目标位置 (单位: mm 或 度)</returns>
-    Task<double> GetTargetPositionAsync();
+    double GetTargetPosition();
 
     /// <summary>
-    /// 获取轴状态
+    /// 获取轴状态（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>轴状态</returns>
-    Task<AxisStatus> GetStatusAsync();
+    AxisStatus GetStatus();
 
     /// <summary>
-    /// 检查运动是否完成
+    /// 检查运动是否完成（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>是否完成</returns>
-    Task<bool> CheckDoneAsync();
+    bool CheckDone();
 
     /// <summary>
     /// 在线变速
@@ -114,10 +114,10 @@ public interface IAxisController
     Task<bool> HomeMoveAsync();
 
     /// <summary>
-    /// 获取回零结果
+    /// 获取回零结果（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>回零状态 (0=未完成, 1=成功, 2=失败)</returns>
-    Task<ushort> GetHomeResultAsync();
+    ushort GetHomeResult();
 
     /// <summary>
     /// 设置回零后的位置
@@ -182,10 +182,10 @@ public interface IAxisController
     Task<bool> StartPvtMoveAsync();
 
     /// <summary>
-    /// 获取 PVT 缓冲区剩余空间
+    /// 获取 PVT 缓冲区剩余空间（同步方法，适合高频轮询）
     /// </summary>
     /// <returns>剩余空间大小</returns>
-    Task<short> GetPvtRemainSpaceAsync();
+    short GetPvtRemainSpace();
 
     /// <summary>
     /// 等待运动完成

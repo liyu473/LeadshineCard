@@ -84,25 +84,25 @@ public interface IInterpolationController
     Task<bool> StopContinuousAsync(ushort crd);
 
     /// <summary>
-    /// 获取剩余缓冲区空间
+    /// 获取剩余缓冲区空间（同步方法，适合高频轮询）
     /// </summary>
     /// <param name="crd">坐标系号</param>
     /// <returns>剩余空间数量</returns>
-    Task<int> GetRemainingBufferSpaceAsync(ushort crd);
+    int GetRemainingBufferSpace(ushort crd);
 
     /// <summary>
-    /// 获取当前段标号
+    /// 获取当前段标号（同步方法，适合高频轮询）
     /// </summary>
     /// <param name="crd">坐标系号</param>
     /// <returns>当前段标号</returns>
-    Task<int> GetCurrentMarkAsync(ushort crd);
+    int GetCurrentMark(ushort crd);
 
     /// <summary>
-    /// 检查连续插补是否完成
+    /// 检查连续插补是否完成（同步方法，适合高频轮询）
     /// </summary>
     /// <param name="crd">坐标系号</param>
     /// <returns>是否完成</returns>
-    Task<bool> CheckContinuousDoneAsync(ushort crd);
+    bool CheckContinuousDone(ushort crd);
 
     /// <summary>
     /// 等待连续插补完成
