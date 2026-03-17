@@ -50,15 +50,13 @@ public class LeadshineAxisController(
 
         parameters.Validate();
 
-        {
-            _logger.LogInformation(
-                "设置轴 {AxisNo} 运动参数: MaxSpeed={MaxSpeed}, Acc={Acceleration}, Dec={Deceleration}",
-                axisNo,
-                parameters.MaxSpeed,
-                parameters.Acceleration,
-                parameters.Deceleration
-            );
-        }
+        _logger.LogInformation(
+            "设置轴 {AxisNo} 运动参数: MaxSpeed={MaxSpeed}, Acc={Acceleration}, Dec={Deceleration}",
+            axisNo,
+            parameters.MaxSpeed,
+            parameters.Acceleration,
+            parameters.Deceleration
+        );
 
         try
         {
@@ -345,15 +343,7 @@ public class LeadshineAxisController(
 
         try
         {
-            ushort stopMode = mode switch
-            {
-                StopMode.Immediate => 0,
-                StopMode.Deceleration => 1,
-                StopMode.Emergency => 2,
-                _ => 1,
-            };
-
-            var result = await Task.Run(() => LTDMC.dmc_stop(cardNo, axisNo, stopMode));
+            var result = await Task.Run(() => LTDMC.dmc_stop(cardNo, axisNo, (ushort)mode));
 
             if (result != 0)
             {
@@ -378,7 +368,7 @@ public class LeadshineAxisController(
         try
         {
             double position = 0;
-            // 快速调用，不使用 Task.Run
+
             var result = await Task.Run(
                 () => LTDMC.dmc_get_position_unit(cardNo, axisNo, ref position)
             );
@@ -637,14 +627,12 @@ public class LeadshineAxisController(
             throw new ArgumentException("速度必须大于0", nameof(newSpeed));
         }
 
-        {
-            _logger.LogInformation(
-                "轴 {AxisNo} 在线变速，新速度: {NewSpeed}, 加速时间: {AccelTime}",
-                axisNo,
-                newSpeed,
-                accelTime
-            );
-        }
+        _logger.LogInformation(
+            "轴 {AxisNo} 在线变速，新速度: {NewSpeed}, 加速时间: {AccelTime}",
+            axisNo,
+            newSpeed,
+            accelTime
+        );
 
         try
         {
@@ -677,15 +665,13 @@ public class LeadshineAxisController(
             throw new ArgumentException("回零速度必须大于0", nameof(speed));
         }
 
-        {
-            _logger.LogInformation(
-                "设置轴 {AxisNo} 回零模式: 方向={Direction}, 速度={Speed}, 模式={Mode}",
-                axisNo,
-                direction,
-                speed,
-                mode
-            );
-        }
+        _logger.LogInformation(
+            "设置轴 {AxisNo} 回零模式: 方向={Direction}, 速度={Speed}, 模式={Mode}",
+            axisNo,
+            direction,
+            speed,
+            mode
+        );
 
         try
         {
@@ -926,9 +912,7 @@ public class LeadshineAxisController(
         // 自动检查缓冲区空间
         await EnsurePvtBufferSpaceAsync(times.Length);
 
-        {
-            _logger.LogInformation("设置轴 {AxisNo} PVT 表，点数: {Count}", axisNo, times.Length);
-        }
+        _logger.LogInformation("设置轴 {AxisNo} PVT 表，点数: {Count}", axisNo, times.Length);
 
         try
         {
@@ -1025,15 +1009,13 @@ public class LeadshineAxisController(
         // 自动检查缓冲区空间
         await EnsurePvtBufferSpaceAsync(times.Length);
 
-        {
-            _logger.LogInformation(
-                "设置轴 {AxisNo} PVTS 表，点数: {Count}, 起始速度: {StartVel}, 结束速度: {EndVel}",
-                axisNo,
-                times.Length,
-                startVelocity,
-                endVelocity
-            );
-        }
+        _logger.LogInformation(
+            "设置轴 {AxisNo} PVTS 表，点数: {Count}, 起始速度: {StartVel}, 结束速度: {EndVel}",
+            axisNo,
+            times.Length,
+            startVelocity,
+            endVelocity
+        );
 
         try
         {

@@ -181,13 +181,11 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         if (values == null || values.Length == 0)
             throw new ArgumentException("值数组不能为空", nameof(values));
 
-        {
-            _logger.LogDebug(
-                "批量写入输出位，起始: {StartBit}, 数量: {Count}",
-                startBit,
-                values.Length
-            );
-        }
+        _logger.LogDebug(
+            "批量写入输出位，起始: {StartBit}, 数量: {Count}",
+            startBit,
+            values.Length
+        );
 
         try
         {

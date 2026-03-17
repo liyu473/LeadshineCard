@@ -3,7 +3,7 @@ namespace LeadshineCard.Core.Enums;
 /// <summary>
 /// 停止模式枚举
 /// </summary>
-public enum StopMode
+public enum StopMode : ushort
 {
     /// <summary>
     /// 立即停止（急停）
@@ -18,5 +18,5 @@ public enum StopMode
     /// <summary>
     /// 紧急停止
     /// </summary>
-    Emergency = 2
+    Emergency = 2,
 }

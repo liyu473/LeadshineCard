@@ -508,17 +508,15 @@ public class LeadshineInterpolationController(
         double stopVel
     )
     {
-        {
-            _logger.LogInformation(
-                "设置坐标系 {Crd} 插补速度参数: MinVel={MinVel}, MaxVel={MaxVel}, Tacc={Tacc}, Tdec={Tdec}, StopVel={StopVel}",
-                crd,
-                minVel,
-                maxVel,
-                tacc,
-                tdec,
-                stopVel
-            );
-        }
+        _logger.LogInformation(
+            "设置坐标系 {Crd} 插补速度参数: MinVel={MinVel}, MaxVel={MaxVel}, Tacc={Tacc}, Tdec={Tdec}, StopVel={StopVel}",
+            crd,
+            minVel,
+            maxVel,
+            tacc,
+            tdec,
+            stopVel
+        );
 
         try
         {
@@ -617,15 +615,13 @@ public class LeadshineInterpolationController(
                 nameof(targetPositions)
             );
 
-        {
-            var direction = clockwise ? "顺时针" : "逆时针";
-            _logger.LogInformation(
-                "半径式圆弧插补，轴数: {AxisCount}, 半径: {Radius}, 方向: {Direction}",
-                axes.Length,
-                arcRadius,
-                direction
-            );
-        }
+        var direction = clockwise ? "顺时针" : "逆时针";
+        _logger.LogInformation(
+            "半径式圆弧插补，轴数: {AxisCount}, 半径: {Radius}, 方向: {Direction}",
+            axes.Length,
+            arcRadius,
+            direction
+        );
 
         try
         {
@@ -839,15 +835,13 @@ public class LeadshineInterpolationController(
         double maxArcError
     )
     {
-        {
-            _logger.LogInformation(
-                "设置坐标系 {Crd} 圆弧限制: Enable={Enable}, MaxCenAcc={MaxCenAcc}, MaxArcError={MaxArcError}",
-                crd,
-                enable,
-                maxCenAcc,
-                maxArcError
-            );
-        }
+        _logger.LogInformation(
+            "设置坐标系 {Crd} 圆弧限制: Enable={Enable}, MaxCenAcc={MaxCenAcc}, MaxArcError={MaxArcError}",
+            crd,
+            enable,
+            maxCenAcc,
+            maxArcError
+        );
 
         try
         {
