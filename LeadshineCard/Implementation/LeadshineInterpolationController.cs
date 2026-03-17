@@ -25,6 +25,7 @@ public class LeadshineInterpolationController(
     private readonly ILogger<LeadshineInterpolationController> _logger =
         logger ?? NullLogger<LeadshineInterpolationController>.Instance;
     private readonly Dictionary<ushort, InterpolationParameters> _parametersCache = [];
+    private readonly Dictionary<ushort, ushort[]> _coordinateAxesCache = []; // 缓存每个坐标系的轴配置
     private const int MinBufferSpace = 10; // 最小缓冲区空间阈值
 
     // 事件定义
@@ -93,14 +94,12 @@ public class LeadshineInterpolationController(
                 nameof(centerPositions)
             );
 
-        {
-            var direction = clockwise ? "顺时针" : "逆时针";
-            _logger.LogInformation(
-                "圆弧插补，轴数: {AxisCount}, 方向: {Direction}",
-                axes.Length,
-                direction
-            );
-        }
+        var direction = clockwise ? "顺时针" : "逆时针";
+        _logger.LogInformation(
+            "圆弧插补，轴数: {AxisCount}, 方向: {Direction}",
+            axes.Length,
+            direction
+        );
 
         try
         {
@@ -143,13 +142,11 @@ public class LeadshineInterpolationController(
         if (axes == null || axes.Length == 0)
             throw new ArgumentException("轴数组不能为空", nameof(axes));
 
-        {
-            _logger.LogInformation(
-                "打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}",
-                crd,
-                axes.Length
-            );
-        }
+        _logger.LogInformation(
+            "打开坐标系 {Crd} 连续插补缓冲区，轴数: {AxisCount}",
+            crd,
+            axes.Length
+        );
 
         try
         {
@@ -162,6 +159,9 @@ public class LeadshineInterpolationController(
                 _logger.LogError("打开连续插补缓冲区失败，错误码: {ErrorCode}", result);
                 return false;
             }
+
+            // 缓存坐标系的轴配置
+            _coordinateAxesCache[crd] = axes;
             _logger.LogDebug("连续插补缓冲区已打开");
             return true;
         }
@@ -188,6 +188,9 @@ public class LeadshineInterpolationController(
                 _logger.LogError("关闭连续插补缓冲区失败，错误码: {ErrorCode}", result);
                 return false;
             }
+
+            // 清除坐标系的轴配置缓存
+            _coordinateAxesCache.Remove(crd);
             _logger.LogDebug("连续插补缓冲区已关闭");
             return true;
         }
@@ -206,19 +209,22 @@ public class LeadshineInterpolationController(
         if (targetPositions == null || targetPositions.Length == 0)
             throw new ArgumentException("目标位置数组不能为空", nameof(targetPositions));
 
+        // 获取坐标系的轴配置
+        if (!_coordinateAxesCache.TryGetValue(crd, out var axes))
+            throw new InvalidOperationException($"坐标系 {crd} 未打开，请先调用 OpenContinuousBufferAsync");
+
+        if (axes.Length != targetPositions.Length)
+            throw new ArgumentException(
+                $"目标位置数组长度({targetPositions.Length})必须与坐标系轴数({axes.Length})相同",
+                nameof(targetPositions)
+            );
+
         // 自动检查并等待缓冲区空间
         await EnsureBufferSpaceAsync(crd, 1);
         _logger.LogDebug("添加直线段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
-            // 获取坐标系的轴列表（这里简化处理，实际应该从配置获取）
-            var axes = new ushort[targetPositions.Length];
-            for (ushort i = 0; i < targetPositions.Length; i++)
-            {
-                axes[i] = i;
-            }
-
             var result = await Task.Run(
                 () =>
                     LTDMC.dmc_conti_line_unit(
@@ -319,18 +325,22 @@ public class LeadshineInterpolationController(
                 nameof(centerPositions)
             );
 
+        // 获取坐标系的轴配置
+        if (!_coordinateAxesCache.TryGetValue(crd, out var axes))
+            throw new InvalidOperationException($"坐标系 {crd} 未打开，请先调用 OpenContinuousBufferAsync");
+
+        if (axes.Length != targetPositions.Length)
+            throw new ArgumentException(
+                $"目标位置数组长度({targetPositions.Length})必须与坐标系轴数({axes.Length})相同",
+                nameof(targetPositions)
+            );
+
         // 自动检查并等待缓冲区空间
         await EnsureBufferSpaceAsync(crd, 1);
         _logger.LogDebug("添加圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
-            var axes = new ushort[targetPositions.Length];
-            for (ushort i = 0; i < targetPositions.Length; i++)
-            {
-                axes[i] = i;
-            }
-
             ushort arcDir = (ushort)(clockwise ? 0 : 1);
             var result = await Task.Run(
                 () =>
@@ -724,16 +734,23 @@ public class LeadshineInterpolationController(
     {
         if (targetPositions == null || targetPositions.Length < 2)
             throw new ArgumentException("圆弧至少需要2个轴的目标位置", nameof(targetPositions));
+
+        // 获取坐标系的轴配置
+        if (!_coordinateAxesCache.TryGetValue(crd, out var axes))
+            throw new InvalidOperationException($"坐标系 {crd} 未打开，请先调用 OpenContinuousBufferAsync");
+
+        if (axes.Length != targetPositions.Length)
+            throw new ArgumentException(
+                $"目标位置数组长度({targetPositions.Length})必须与坐标系轴数({axes.Length})相同",
+                nameof(targetPositions)
+            );
+
+        // 自动检查并等待缓冲区空间
+        await EnsureBufferSpaceAsync(crd, 1);
         _logger.LogDebug("添加半径式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
-            var axes = new ushort[targetPositions.Length];
-            for (ushort i = 0; i < targetPositions.Length; i++)
-            {
-                axes[i] = i;
-            }
-
             ushort arcDir = (ushort)(clockwise ? 0 : 1);
             var result = await Task.Run(
                 () =>
@@ -754,15 +771,19 @@ public class LeadshineInterpolationController(
             if (result != 0)
             {
                 _logger.LogError("添加半径式圆弧段失败，错误码: {ErrorCode}", result);
-                return false;
+                throw new MotionCardException($"添加半径式圆弧段失败", result);
             }
 
             return true;
         }
+        catch (MotionCardException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "添加半径式圆弧段异常");
-            return false;
+            throw new MotionCardException("添加半径式圆弧段异常", ex);
         }
     }
 
@@ -785,16 +806,23 @@ public class LeadshineInterpolationController(
                 "中间点位置数组长度必须与目标位置数组相同",
                 nameof(midPositions)
             );
+
+        // 获取坐标系的轴配置
+        if (!_coordinateAxesCache.TryGetValue(crd, out var axes))
+            throw new InvalidOperationException($"坐标系 {crd} 未打开，请先调用 OpenContinuousBufferAsync");
+
+        if (axes.Length != targetPositions.Length)
+            throw new ArgumentException(
+                $"目标位置数组长度({targetPositions.Length})必须与坐标系轴数({axes.Length})相同",
+                nameof(targetPositions)
+            );
+
+        // 自动检查并等待缓冲区空间
+        await EnsureBufferSpaceAsync(crd, 1);
         _logger.LogDebug("添加三点式圆弧段到坐标系 {Crd}，标号: {Mark}", crd, mark);
 
         try
         {
-            var axes = new ushort[targetPositions.Length];
-            for (ushort i = 0; i < targetPositions.Length; i++)
-            {
-                axes[i] = i;
-            }
-
             var result = await Task.Run(
                 () =>
                     LTDMC.dmc_conti_arc_move_3points_unit(
@@ -813,15 +841,19 @@ public class LeadshineInterpolationController(
             if (result != 0)
             {
                 _logger.LogError("添加三点式圆弧段失败，错误码: {ErrorCode}", result);
-                return false;
+                throw new MotionCardException($"添加三点式圆弧段失败", result);
             }
 
             return true;
         }
+        catch (MotionCardException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "添加三点式圆弧段异常");
-            return false;
+            throw new MotionCardException("添加三点式圆弧段异常", ex);
         }
     }
 
