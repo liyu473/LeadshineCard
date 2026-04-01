@@ -1,4 +1,5 @@
-﻿using iNKORE.UI.WPF.Modern;
+﻿using System.Windows.Controls.Primitives;
+using iNKORE.UI.WPF.Modern;
 using iNKORE.UI.WPF.Modern.Controls;
 using InkoreWpf.Service;
 using InkoreWpf.ViewModel;
@@ -21,7 +22,7 @@ public partial class MainWindow : LyuWindow
     private readonly NavigateServer _nav;
 
     [Inject]
-    private readonly INotificationService notificationService;
+    private readonly INotificationService _notificationService;
 
     public MainWindow()
     {
@@ -58,17 +59,23 @@ public partial class MainWindow : LyuWindow
             ContentFrame.GoBack();
     }
 
+    private bool _isFirstThemeChange = true;
+
     protected override void OnThemeChanged(LyuWindowThemeChangedEventArgs e)
     {
         base.OnThemeChanged(e);
         var elementTheme =
             e.EffectiveTheme == WindowThemeMode.Dark ? ElementTheme.Dark : ElementTheme.Light;
-
         ThemeManager.SetRequestedTheme(this, elementTheme);
-        notificationService.ShowSuccess(
-            $"切换至{elementTheme.GetEnumDescription()}",
-            position: NotificationPosition.BottomRight
-        );
+        if (!_isFirstThemeChange)
+        {
+            _notificationService.ShowSuccess(
+                $"切换至{elementTheme.GetEnumDescription()}",
+                position: NotificationPosition.BottomRight
+            );
+        }
+
+        _isFirstThemeChange = false;
     }
 
     private void About_Click(object sender, System.Windows.RoutedEventArgs e)

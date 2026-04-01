@@ -18,11 +18,17 @@ public interface IMotionCard : IDisposable
     bool IsConnected { get; }
 
     /// <summary>
+    /// 连接状态变更事件
+    /// </summary>
+    event EventHandler<bool>? ConnectionStateChanged;
+
+    /// <summary>
     /// 初始化板卡
     /// </summary>
     /// <param name="cardNo">板卡号</param>
+    /// <param name="heartbeat">是否启用心跳检测,默认true</param>
     /// <returns>是否成功</returns>
-    Task<bool> InitializeAsync(ushort cardNo);
+    Task<bool> InitializeAsync(ushort cardNo, bool heartbeat = true);
 
     /// <summary>
     /// 关闭板卡

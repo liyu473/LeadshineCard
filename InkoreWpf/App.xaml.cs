@@ -1,5 +1,6 @@
 ﻿using InkoreWpf.Service;
 using InkoreWpf.View;
+using LeadshineCard.Extensions;
 using LyuExtensions.Extensions;
 using LyuLogExtension.Builder;
 using LyuLogExtension.Extensions;
@@ -153,5 +154,7 @@ public partial class App : Application
 
         services.AddLyuNotificationService();
         services.AddLyuBusyService();
+
+        services.AddLeadshineMotionControl(); //雷赛服务
     }
 }

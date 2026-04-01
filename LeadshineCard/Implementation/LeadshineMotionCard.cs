@@ -30,14 +30,21 @@ public class LeadshineMotionCard(
     private readonly Dictionary<ushort, IAxisController> _axisControllers = [];
     private IIoController? _ioController;
     private IInterpolationController? _interpolationController;
+    private Timer? _heartbeatTimer;
+    private readonly object _connectionLock = new();
 
     public ushort CardNo => _cardNo;
     public bool IsConnected => _isConnected;
 
     /// <summary>
+    /// 连接状态变更事件
+    /// </summary>
+    public event EventHandler<bool>? ConnectionStateChanged;
+
+    /// <summary>
     /// 初始化板卡
     /// </summary>
-    public async Task<bool> InitializeAsync(ushort cardNo)
+    public async Task<bool> InitializeAsync(ushort cardNo, bool heartbeat = true)
     {
         _logger.LogInformation("开始初始化板卡 {CardNo}", cardNo);
 
@@ -57,6 +64,11 @@ public class LeadshineMotionCard(
 
             // 查询板卡信息
             await LoadCardInfoAsync();
+
+            // 启动心跳检测
+            if (heartbeat)
+                StartHeartbeat();
+
             _logger.LogInformation("板卡 {CardNo} 初始化成功", cardNo);
             return true;
         }
@@ -97,6 +109,10 @@ public class LeadshineMotionCard(
             _axisControllers.Clear();
             _ioController = null;
             _interpolationController = null;
+
+            // 停止心跳检测
+            StopHeartbeat();
+
             _logger.LogInformation("板卡 {CardNo} 已关闭", _cardNo);
             return true;
         }
@@ -310,6 +326,64 @@ public class LeadshineMotionCard(
     }
 
     /// <summary>
+    /// 启动心跳检测
+    /// </summary>
+    private void StartHeartbeat()
+    {
+        _heartbeatTimer = new Timer(
+            HeartbeatCallback,
+            null,
+            TimeSpan.FromSeconds(0.5),
+            TimeSpan.FromSeconds(2)
+        );
+        _logger.LogDebug("心跳检测已启动");
+    }
+
+    /// <summary>
+    /// 停止心跳检测
+    /// </summary>
+    private void StopHeartbeat()
+    {
+        _heartbeatTimer?.Dispose();
+        _heartbeatTimer = null;
+        _logger.LogDebug("心跳检测已停止");
+    }
+
+    /// <summary>
+    /// 心跳检测回调
+    /// </summary>
+    private void HeartbeatCallback(object? state)
+    {
+        lock (_connectionLock)
+        {
+            try
+            {
+                // 使用轻量级API检测板卡状态
+                var result = LTDMC.dmc_check_done(_cardNo, 0);
+                bool isNowConnected = result == 0 || result == 1; // 0=运动中, 1=运动完成, 都表示连接正常
+
+                if (isNowConnected != _isConnected)
+                {
+                    _isConnected = isNowConnected;
+                    _logger.LogWarning("板卡连接状态变更: {IsConnected}", _isConnected);
+
+                    // 触发事件
+                    ConnectionStateChanged?.Invoke(this, _isConnected);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_isConnected)
+                {
+                    _isConnected = false;
+                    _logger.LogError(ex, "心跳检测异常,板卡可能已断开");
+                    ConnectionStateChanged?.Invoke(this, false);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// 释放资源
     /// </summary>
     public void Dispose()
@@ -317,6 +391,9 @@ public class LeadshineMotionCard(
         if (_disposed)
             return;
         _logger.LogDebug("释放板卡资源");
+
+        // 停止心跳检测
+        StopHeartbeat();
 
         if (_isConnected)
         {
