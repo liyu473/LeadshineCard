@@ -1,0 +1,113 @@
+﻿<lyu:LyuWindow
+    x:Class="InkoreWpf.View.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:lyu="http://schemas.lyuwpfhelper.com/winfx/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+    xmlns:viewmodel="clr-namespace:InkoreWpf.ViewModel"
+    Title="{Binding Title}"
+    Width="1200"
+    Height="800"
+    d:DataContext="{d:DesignInstance Type=viewmodel:MainWindowViewModel}"
+    lyu:LyuWindowHelper.FullScreenKey="F11"
+    lyu:WindowBackdropHelper.Backdrop="Mica"
+    TitleBarBackground="Transparent"
+    TitleBarHeight="40"
+    WindowStartupLocation="CenterScreen"
+    WindowState="Maximized"
+    mc:Ignorable="d">
+    <lyu:LyuWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemeResources CanBeAccessedAcrossThreads="False">
+                    <ui:ThemeResources.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Light">
+                            <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="LayerFillColorDefaultBrush" />
+                            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Dark">
+                            <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="LayerFillColorDefaultBrush" />
+                            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{DynamicResource SystemColorWindowColor}" />
+                            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="{DynamicResource SystemColorWindowColor}" />
+                        </ResourceDictionary>
+                    </ui:ThemeResources.ThemeDictionaries>
+                </ui:ThemeResources>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </lyu:LyuWindow.Resources>
+
+    <lyu:LyuWindow.TitleBarRightContent>
+        <lyu:SimpleStackPanel>
+            <Button
+                Click="About_Click"
+                Content="关于"
+                Style="{StaticResource TitleBarButtonStyle}" />
+        </lyu:SimpleStackPanel>
+    </lyu:LyuWindow.TitleBarRightContent>
+
+    <Grid>
+        <lyu:DrawersHost>
+            <lyu:Drawer
+                x:Name="AboutDrawer"
+                MinWidth="220"
+                Header="About"
+                Position="Right">
+                <lyu:SimpleStackPanel Spacing="12">
+                    <TextBlock>LyuWpfHelper</TextBlock>
+                    <TextBlock>LyuExtensions</TextBlock>
+                    <TextBlock>LyuLogExtension</TextBlock>
+                </lyu:SimpleStackPanel>
+            </lyu:Drawer>
+        </lyu:DrawersHost>
+        <ui:NavigationView
+            x:Name="NavView"
+            BackRequested="NvSample_BackRequested"
+            Header="{Binding Header}"
+            IsBackButtonVisible="Collapsed"
+            IsBackEnabled="{Binding ElementName=ContentFrame, Path=CanGoBack}"
+            IsPaneToggleButtonVisible="True"
+            IsSettingsVisible="False"
+            PaneDisplayMode="{Binding SettingsViewModel.SelectedNavMode}"
+            PaneTitle="目录"
+            SelectionChanged="NavView_SelectionChanged">
+
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem
+                    Content="主页"
+                    IsSelected="True"
+                    Tag="Home">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="个人" Tag="Account">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Contact}" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="设置" Tag="Settings">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Settings}" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.FooterMenuItems>
+
+
+            <ScrollViewer
+                Padding="59,0"
+                IsTabStop="False"
+                VerticalScrollBarVisibility="Auto">
+                <ui:Frame x:Name="ContentFrame" Content="{Binding Page, Mode=TwoWay}" />
+            </ScrollViewer>
+
+        </ui:NavigationView>
+    </Grid>
+</lyu:LyuWindow>
