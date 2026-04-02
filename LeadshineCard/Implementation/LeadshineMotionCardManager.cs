@@ -42,12 +42,6 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
         return Task.FromResult(cardNos);
     }
 
-    public Task<bool> SetDebugModeAsync(DebugOutputMode mode, string fileName) =>
-        LeadshineDebugModeHelper.SetDebugModeAsync(mode, fileName, _logger);
-
-    public Task<DebugModeSettings> GetDebugModeAsync() =>
-        LeadshineDebugModeHelper.GetDebugModeAsync(_logger);
-
     public Task<IMotionCard> GetCardAsync(ushort cardNo)
     {
         ThrowIfDisposed();

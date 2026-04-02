@@ -37,22 +37,6 @@ public interface IMotionCard : IDisposable
     Task<bool> ResetAsync();
 
     /// <summary>
-    /// 设置函数库调试输出模式。
-    /// 这是全局库设置，不是单张板卡私有设置。
-    /// </summary>
-    /// <param name="mode">调试输出模式</param>
-    /// <param name="fileName">日志文件路径</param>
-    /// <returns>是否成功</returns>
-    Task<bool> SetDebugModeAsync(DebugOutputMode mode, string fileName);
-
-    /// <summary>
-    /// 获取函数库调试输出设置。
-    /// 这是全局库设置，不是单张板卡私有设置。
-    /// </summary>
-    /// <returns>调试输出设置</returns>
-    Task<DebugModeSettings> GetDebugModeAsync();
-
-    /// <summary>
     /// 获取板卡信息。
     /// </summary>
     /// <returns>板卡信息</returns>

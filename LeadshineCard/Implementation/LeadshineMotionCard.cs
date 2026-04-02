@@ -150,12 +150,6 @@ public class LeadshineMotionCard : IMotionCard
         }
     }
 
-    public Task<bool> SetDebugModeAsync(DebugOutputMode mode, string fileName) =>
-        LeadshineDebugModeHelper.SetDebugModeAsync(mode, fileName, _logger);
-
-    public Task<DebugModeSettings> GetDebugModeAsync() =>
-        LeadshineDebugModeHelper.GetDebugModeAsync(_logger);
-
     public CardInfo GetCardInfo()
     {
         if (_cardInfo == null)

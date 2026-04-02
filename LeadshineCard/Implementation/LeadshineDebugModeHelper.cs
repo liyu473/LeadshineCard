@@ -4,20 +4,35 @@ using LeadshineCard.Core.Exceptions;
 using LeadshineCard.Core.Models;
 using LeadshineCard.ThirdPart;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LeadshineCard.Implementation;
 
-internal static class LeadshineDebugModeHelper
+/// <summary>
+/// 雷赛板卡调试模式辅助类。
+/// 用于设置和获取函数库的全局调试输出模式。
+/// </summary>
+public static class LeadshineDebugModeHelper
 {
     private const int FileNameBufferSize = 1024;
 
-    internal static async Task<bool> SetDebugModeAsync(
+    /// <summary>
+    /// 设置函数库调试输出模式。
+    /// 这是全局库设置，不是单张板卡私有设置。
+    /// </summary>
+    /// <param name="mode">调试输出模式</param>
+    /// <param name="fileName">日志文件路径</param>
+    /// <param name="logger">日志记录器（可选）</param>
+    /// <returns>是否成功</returns>
+    public static async Task<bool> SetDebugModeAsync(
         DebugOutputMode mode,
         string fileName,
-        ILogger logger
+        ILogger? logger = null
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        logger ??= NullLogger.Instance;
 
         var result = await Task.Run(() => LTDMC.dmc_set_debug_mode((ushort)mode, fileName))
             .ConfigureAwait(false);
@@ -27,11 +42,19 @@ internal static class LeadshineDebugModeHelper
             return false;
         }
 
+        logger.LogInformation("调试输出模式已设置: {Mode}, 文件: {FileName}", mode, fileName);
         return true;
     }
 
-    internal static async Task<DebugModeSettings> GetDebugModeAsync(ILogger logger)
+    /// <summary>
+    /// 获取函数库调试输出设置。
+    /// 这是全局库设置，不是单张板卡私有设置。
+    /// </summary>
+    /// <param name="logger">日志记录器（可选）</param>
+    /// <returns>调试输出设置</returns>
+    public static async Task<DebugModeSettings> GetDebugModeAsync(ILogger? logger = null)
     {
+        logger ??= NullLogger.Instance;
         IntPtr fileNameBuffer = Marshal.AllocHGlobal(FileNameBufferSize);
 
         try
