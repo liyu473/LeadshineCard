@@ -1333,4 +1333,84 @@ public class LeadshineAxisController(
             ); //参照Dmc3000系列，第八章
         }
     }
+
+    /// <summary>
+    /// 设置脉冲输出模式
+    /// </summary>
+    public async Task<bool> SetPulseOutputModeAsync(PulseOutputMode mode)
+    {
+        _logger.LogInformation("设置轴 {AxisNo} 脉冲输出模式: {Mode}", axisNo, mode);
+
+        try
+        {
+            var result = await Task.Run(
+                () => LTDMC.dmc_set_pulse_outmode(cardNo, axisNo, (ushort)mode)
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError(
+                    "设置轴 {AxisNo} 脉冲输出模式失败，错误码: {ErrorCode}",
+                    axisNo,
+                    result
+                );
+                return false;
+            }
+
+            _logger.LogDebug("轴 {AxisNo} 脉冲输出模式设置成功", axisNo);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置轴 {AxisNo} 脉冲输出模式异常", axisNo);
+            throw new AxisException($"设置脉冲输出模式异常", axisNo, ex);
+        }
+    }
+
+    /// <summary>
+    /// 获取脉冲输出模式
+    /// </summary>
+    public async Task<PulseOutputMode> GetPulseOutputModeAsync()
+    {
+        _logger.LogDebug("获取轴 {AxisNo} 脉冲输出模式", axisNo);
+
+        try
+        {
+            ushort outmode = 0;
+            var result = await Task.Run(
+                () => LTDMC.dmc_get_pulse_outmode(cardNo, axisNo, ref outmode)
+            );
+
+            if (result != 0)
+            {
+                _logger.LogError(
+                    "获取轴 {AxisNo} 脉冲输出模式失败，错误码: {ErrorCode}",
+                    axisNo,
+                    result
+                );
+                throw new AxisException($"获取脉冲输出模式失败", axisNo, result);
+            }
+
+            if (!Enum.IsDefined(typeof(PulseOutputMode), outmode))
+            {
+                _logger.LogWarning(
+                    "轴 {AxisNo} 返回的脉冲输出模式值 {Value} 无效，使用默认值",
+                    axisNo,
+                    outmode
+                );
+                return PulseOutputMode.PulseDirection0;
+            }
+
+            return (PulseOutputMode)outmode;
+        }
+        catch (AxisException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取轴 {AxisNo} 脉冲输出模式异常", axisNo);
+            throw new AxisException($"获取脉冲输出模式异常", axisNo, ex);
+        }
+    }
 }

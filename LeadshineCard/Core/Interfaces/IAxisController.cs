@@ -206,4 +206,17 @@ public interface IAxisController
     /// </summary>
     /// <returns>软限位配置</returns>
     SoftLimit? GetSoftLimit();
+
+    /// <summary>
+    /// 设置脉冲输出模式
+    /// </summary>
+    /// <param name="mode">脉冲输出模式</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetPulseOutputModeAsync(PulseOutputMode mode);
+
+    /// <summary>
+    /// 获取脉冲输出模式
+    /// </summary>
+    /// <returns>脉冲输出模式</returns>
+    Task<PulseOutputMode> GetPulseOutputModeAsync();
 }

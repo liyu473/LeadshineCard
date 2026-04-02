@@ -19,7 +19,7 @@ public class InitializeServices : IHostedService
     [TryCatch]
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _card.InitializeAsync(0);
+        await _card.InitializeAsync();
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
