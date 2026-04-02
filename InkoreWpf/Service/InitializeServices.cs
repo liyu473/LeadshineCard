@@ -14,6 +14,7 @@ public class InitializeServices : IHostedService
     [Inject]
     private readonly ILogger<InitializeServices> _logger;
 
+    [TryCatch]
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _card.InitializeAsync(0);

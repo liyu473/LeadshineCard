@@ -53,31 +53,13 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        GlobalErrorCapture();
+
         _host = CreateHostBuilder(e.Args).Build();
         Services = _host.Services;
         _logger = Services.GetRequiredService<ILogger<App>>();
 
         await _host.StartAsync();
-
-        var global = new GlobalExceptionHandler(_logger, ex =>
-        {
-            if (Current?.Dispatcher != null)
-            {
-                Current.Dispatcher.BeginInvoke(
-                    new Action(() =>
-                    {
-                        MessageBox.Show(
-                            ex.Message,
-                            "全局异常",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error
-                        );
-                    })
-                );
-            }
-        });
-
-        global.Initialize();
 
         var mainWindow = Services.GetRequiredService<MainWindow>();
         mainWindow.Show();
@@ -156,5 +138,28 @@ public partial class App : Application
         services.AddLyuBusyService();
 
         services.AddLeadshineMotionControl(); //雷赛服务
+    }
+
+    private void GlobalErrorCapture()
+    {
+        var global = new GlobalExceptionHandler(_logger, ex =>
+        {
+            if (Current?.Dispatcher != null)
+            {
+                Current.Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        MessageBox.Show(
+                            ex.Message,
+                            "全局异常",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error
+                        );
+                    })
+                );
+            }
+        });
+
+        global.Initialize();
     }
 }

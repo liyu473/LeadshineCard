@@ -23,6 +23,12 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     private const ushort MinInputPortNo = 0;
     private const ushort MaxInputPortNo = 1;
     private const ushort OutputPortNo = 0;
+    private const ushort MinDaChannel = 0;
+    private const ushort MaxDaChannel = 1;
+    private const ushort MinAdChannel = 0;
+    private const ushort MaxAdChannel = 7;
+    private const double MinDaVoltage = -10.0;
+    private const double MaxDaVoltage = 10.0;
 
     /// <summary>
     /// 读取输入位（同步方法，适合高频轮询）
@@ -315,6 +321,137 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         }
     }
 
+    /// <summary>
+    /// 设置本地 DA 输出使能（第八章 8.26）
+    /// </summary>
+    public async Task<bool> SetDaEnableAsync(bool enable)
+    {
+        _logger.LogDebug("设置 DA 使能状态: {Enable}", enable);
+
+        try
+        {
+            var enableFlag = (ushort)(enable ? 1 : 0);
+            var result = await Task.Run(() => LTDMC.dmc_set_da_enable(cardNo, enableFlag));
+
+            if (result != 0)
+            {
+                _logger.LogError("设置 DA 使能失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置 DA 使能异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 读取本地 DA 输出使能（第八章 8.26）
+    /// </summary>
+    public bool? GetDaEnable()
+    {
+        try
+        {
+            ushort enable = 0;
+            var result = LTDMC.dmc_get_da_enable(cardNo, ref enable);
+            if (result != 0)
+            {
+                _logger.LogError("读取 DA 使能失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return enable == 1;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "读取 DA 使能异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 设置本地 DA 输出（第八章 8.26）
+    /// </summary>
+    public async Task<bool> SetDaOutputAsync(ushort channel, double voltage)
+    {
+        ValidateDaChannel(channel, nameof(channel));
+        ValidateDaVoltage(voltage, nameof(voltage));
+        _logger.LogDebug("设置 DA 输出: Channel={Channel}, Voltage={Voltage}", channel, voltage);
+
+        try
+        {
+            var result = await Task.Run(() => LTDMC.dmc_set_da_output(cardNo, channel, voltage));
+            if (result != 0)
+            {
+                _logger.LogError("设置 DA 输出失败，错误码: {ErrorCode}", result);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "设置 DA 输出异常");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 读取本地 DA 输出（第八章 8.26）
+    /// </summary>
+    public double? GetDaOutput(ushort channel)
+    {
+        ValidateDaChannel(channel, nameof(channel));
+
+        try
+        {
+            double vout = 0;
+            var result = LTDMC.dmc_get_da_output(cardNo, channel, ref vout);
+            if (result != 0)
+            {
+                _logger.LogError("读取 DA 输出失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return vout;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "读取 DA 输出异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 读取本地 AD 输入（第八章 8.26）
+    /// </summary>
+    public double? GetAdInput(ushort channel)
+    {
+        ValidateAdChannel(channel, nameof(channel));
+
+        try
+        {
+            double vout = 0;
+            var result = LTDMC.dmc_get_ad_input(cardNo, channel, ref vout);
+            if (result != 0)
+            {
+                _logger.LogError("读取 AD 输入失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            return vout;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "读取 AD 输入异常");
+            return null;
+        }
+    }
+
+
     private static void ValidateBitNo(ushort bitNo, string paramName)
     {
         if (bitNo < MinBitNo || bitNo > MaxBitNo)
@@ -350,4 +487,46 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
             );
         }
     }
+
+    private static void ValidateDaChannel(ushort channel, string paramName)
+    {
+        if (channel < MinDaChannel || channel > MaxDaChannel)
+        {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                channel,
+                $"DA 通道超出范围，允许范围为 {MinDaChannel}~{MaxDaChannel}"
+            );
+        }
+    }
+
+    private static void ValidateAdChannel(ushort channel, string paramName)
+    {
+        if (channel < MinAdChannel || channel > MaxAdChannel)
+        {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                channel,
+                $"AD 通道超出范围，允许范围为 {MinAdChannel}~{MaxAdChannel}"
+            );
+        }
+    }
+
+    private static void ValidateDaVoltage(double voltage, string paramName)
+    {
+        if (double.IsNaN(voltage) || double.IsInfinity(voltage))
+        {
+            throw new ArgumentException("电压值无效", paramName);
+        }
+
+        if (voltage < MinDaVoltage || voltage > MaxDaVoltage)
+        {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                voltage,
+                $"DA 输出电压超出范围，允许范围为 {MinDaVoltage}V~{MaxDaVoltage}V"
+            );
+        }
+    }
+
 }

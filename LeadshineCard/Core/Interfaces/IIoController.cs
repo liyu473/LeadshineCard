@@ -64,4 +64,39 @@ public interface IIoController
     /// <param name="values">输出值数组</param>
     /// <returns>是否成功</returns>
     Task<bool> WriteOutputBitsAsync(ushort startBit, bool[] values);
+
+    /// <summary>
+    /// 设置本地 DA 输出使能（第八章 8.26）
+    /// </summary>
+    /// <param name="enable">true=使能, false=禁止</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetDaEnableAsync(bool enable);
+
+    /// <summary>
+    /// 读取本地 DA 输出使能（第八章 8.26）
+    /// </summary>
+    /// <returns>使能状态，读取失败返回null</returns>
+    bool? GetDaEnable();
+
+    /// <summary>
+    /// 设置本地 DA 输出（第八章 8.26）
+    /// </summary>
+    /// <param name="channel">DA通道，范围0~1</param>
+    /// <param name="voltage">输出电压，范围-10V~10V</param>
+    /// <returns>是否成功</returns>
+    Task<bool> SetDaOutputAsync(ushort channel, double voltage);
+
+    /// <summary>
+    /// 读取本地 DA 输出（第八章 8.26）
+    /// </summary>
+    /// <param name="channel">DA通道，范围0~1</param>
+    /// <returns>输出电压，读取失败返回null</returns>
+    double? GetDaOutput(ushort channel);
+
+    /// <summary>
+    /// 读取本地 AD 输入（第八章 8.26）
+    /// </summary>
+    /// <param name="channel">AD通道，范围0~7</param>
+    /// <returns>输入电压，读取失败返回null</returns>
+    double? GetAdInput(ushort channel);
 }
