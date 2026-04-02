@@ -1,6 +1,7 @@
 ﻿using LeadshineCard.Core.Interfaces;
 using LyuExtensions.Aspects;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace InkoreWpf.Service;
 
@@ -10,6 +11,9 @@ public class InitializeServices : IHostedService
     [Inject]
     private readonly IMotionCard _card;
 
+    [Inject]
+    private readonly ILogger<InitializeServices> _logger;
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _card.InitializeAsync(0);
@@ -17,6 +21,7 @@ public class InitializeServices : IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("正在关闭板卡连接...");
         await _card.CloseAsync();
     }
 }

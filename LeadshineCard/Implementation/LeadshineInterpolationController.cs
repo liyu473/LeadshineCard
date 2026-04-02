@@ -24,6 +24,8 @@ public class LeadshineInterpolationController(
 {
     private readonly ILogger<LeadshineInterpolationController> _logger =
         logger ?? NullLogger<LeadshineInterpolationController>.Instance;
+    private const ushort AbsoluteMode = 1;
+    private const ushort DecelerationStopMode = 0;
     private readonly Dictionary<ushort, InterpolationParameters> _parametersCache = [];
     private readonly Dictionary<ushort, ushort[]> _coordinateAxesCache = []; // 缓存每个坐标系的轴配置
     private const int MinBufferSpace = 10; // 最小缓冲区空间阈值
@@ -51,7 +53,15 @@ public class LeadshineInterpolationController(
         try
         {
             var result = await Task.Run(
-                () => LTDMC.dmc_line_unit(cardNo, 0, (ushort)axes.Length, axes, targetPositions, 0)
+                () =>
+                    LTDMC.dmc_line_unit(
+                        cardNo,
+                        0,
+                        (ushort)axes.Length,
+                        axes,
+                        targetPositions,
+                        AbsoluteMode
+                    )
             );
 
             if (result != 0)
@@ -115,7 +125,7 @@ public class LeadshineInterpolationController(
                         centerPositions,
                         arcDir,
                         0,
-                        0
+                        AbsoluteMode
                     )
             );
 
@@ -233,7 +243,7 @@ public class LeadshineInterpolationController(
                         (ushort)axes.Length,
                         axes,
                         targetPositions,
-                        0,
+                        AbsoluteMode,
                         mark
                     )
             );
@@ -353,7 +363,7 @@ public class LeadshineInterpolationController(
                         centerPositions,
                         arcDir,
                         0,
-                        0,
+                        AbsoluteMode,
                         mark
                     )
             );
@@ -438,7 +448,9 @@ public class LeadshineInterpolationController(
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_conti_stop_list(cardNo, crd, 1));
+            var result = await Task.Run(
+                () => LTDMC.dmc_conti_stop_list(cardNo, crd, DecelerationStopMode)
+            );
 
             if (result != 0)
             {
@@ -518,6 +530,13 @@ public class LeadshineInterpolationController(
         double stopVel
     )
     {
+        if (Math.Abs(minVel) > 1e-9 || Math.Abs(stopVel) > 1e-9)
+        {
+            _logger.LogWarning(
+                "插补 MinVel/StopVel 为保留参数，已固定按 0 下发" 
+            ); //根据 DMC3000 第八章
+        }
+
         _logger.LogInformation(
             "设置坐标系 {Crd} 插补速度参数: MinVel={MinVel}, MaxVel={MaxVel}, Tacc={Tacc}, Tdec={Tdec}, StopVel={StopVel}",
             crd,
@@ -535,11 +554,11 @@ public class LeadshineInterpolationController(
                     LTDMC.dmc_set_vector_profile_unit(
                         cardNo,
                         crd,
-                        minVel,
+                        0,
                         maxVel,
                         tacc,
                         tdec,
-                        stopVel
+                        0
                     )
             );
 
@@ -647,7 +666,7 @@ public class LeadshineInterpolationController(
                         arcRadius,
                         arcDir,
                         circle,
-                        0
+                        AbsoluteMode
                     )
             );
 
@@ -701,7 +720,7 @@ public class LeadshineInterpolationController(
                         targetPositions,
                         midPositions,
                         circle,
-                        0
+                        AbsoluteMode
                     )
             );
 
@@ -763,7 +782,7 @@ public class LeadshineInterpolationController(
                         arcRadius,
                         arcDir,
                         circle,
-                        0,
+                        AbsoluteMode,
                         mark
                     )
             );
@@ -833,7 +852,7 @@ public class LeadshineInterpolationController(
                         targetPositions,
                         midPositions,
                         circle,
-                        0,
+                        AbsoluteMode,
                         mark
                     )
             );
@@ -1152,6 +1171,13 @@ public class LeadshineInterpolationController(
         ArgumentNullException.ThrowIfNull(parameters);
         parameters.Validate();
 
+        if (Math.Abs(parameters.MinSpeed) > 1e-9 || Math.Abs(parameters.StopSpeed) > 1e-9)
+        {
+            _logger.LogWarning(
+                "根据 DMC3000 第八章，插补 MinSpeed/StopSpeed 为保留参数，已固定按 0 下发"
+            );
+        }
+
         _logger.LogInformation(
             "设置坐标系 {Crd} 插补参数: MaxSpeed={MaxSpeed}, Acc={Acc}, Dec={Dec}",
             crd,
@@ -1167,11 +1193,11 @@ public class LeadshineInterpolationController(
                     LTDMC.dmc_set_vector_profile_unit(
                         cardNo,
                         crd,
-                        parameters.MinSpeed,
+                        0,
                         parameters.MaxSpeed,
                         parameters.AccelerationTime,
                         parameters.DecelerationTime,
-                        parameters.StopSpeed
+                        0
                     )
             );
 

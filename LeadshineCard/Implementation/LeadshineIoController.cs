@@ -18,12 +18,19 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
 {
     private readonly ILogger<LeadshineIoController> _logger =
         logger ?? NullLogger<LeadshineIoController>.Instance;
+    private const ushort MinBitNo = 0;
+    private const ushort MaxBitNo = 15;
+    private const ushort MinInputPortNo = 0;
+    private const ushort MaxInputPortNo = 1;
+    private const ushort OutputPortNo = 0;
 
     /// <summary>
     /// 读取输入位（同步方法，适合高频轮询）
     /// </summary>
     public bool ReadInputBit(ushort bitNo)
     {
+        ValidateBitNo(bitNo, nameof(bitNo));
+
         try
         {
             var result = LTDMC.dmc_read_inbit(cardNo, bitNo);
@@ -41,6 +48,7 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public async Task<bool> WriteOutputBitAsync(ushort bitNo, bool value)
     {
+        ValidateBitNo(bitNo, nameof(bitNo));
         _logger.LogDebug("写入输出位 {BitNo} = {Value}", bitNo, value);
 
         try
@@ -68,6 +76,8 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public bool ReadOutputBit(ushort bitNo)
     {
+        ValidateBitNo(bitNo, nameof(bitNo));
+
         try
         {
             var result = LTDMC.dmc_read_outbit(cardNo, bitNo);
@@ -85,6 +95,8 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public uint ReadInputPort(ushort portNo)
     {
+        ValidateInputPortNo(portNo, nameof(portNo));
+
         try
         {
             var result = LTDMC.dmc_read_inport(cardNo, portNo);
@@ -102,6 +114,8 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public uint ReadOutputPort(ushort portNo)
     {
+        ValidateOutputPortNo(portNo, nameof(portNo));
+
         try
         {
             var result = LTDMC.dmc_read_outport(cardNo, portNo);
@@ -119,6 +133,7 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     /// </summary>
     public async Task<bool> WriteOutputPortAsync(ushort portNo, uint value)
     {
+        ValidateOutputPortNo(portNo, nameof(portNo));
         _logger.LogDebug("写入输出端口 {PortNo} = 0x{Value:X}", portNo, value);
 
         try
@@ -147,6 +162,16 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     {
         if (count == 0)
             throw new ArgumentException("数量必须大于0", nameof(count));
+        ValidateBitNo(startBit, nameof(startBit));
+        var lastBit = (int)startBit + count - 1;
+        if (lastBit > MaxBitNo)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(count),
+                count,
+                $"读取位范围超出限制，最大位号为 {MaxBitNo}"
+            );
+        }
         _logger.LogDebug("批量读取输入位，起始: {StartBit}, 数量: {Count}", startBit, count);
 
         try
@@ -180,6 +205,16 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     {
         if (values == null || values.Length == 0)
             throw new ArgumentException("值数组不能为空", nameof(values));
+        ValidateBitNo(startBit, nameof(startBit));
+        var lastBit = (int)startBit + values.Length - 1;
+        if (lastBit > MaxBitNo)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(values),
+                values.Length,
+                $"写入位范围超出限制，最大位号为 {MaxBitNo}"
+            );
+        }
 
         _logger.LogDebug(
             "批量写入输出位，起始: {StartBit}, 数量: {Count}",
@@ -222,6 +257,10 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
     {
         if (bitNumbers == null || bitNumbers.Length == 0)
             throw new ArgumentException("位号数组不能为空", nameof(bitNumbers));
+        foreach (var bitNo in bitNumbers)
+        {
+            ValidateBitNo(bitNo, nameof(bitNumbers));
+        }
         _logger.LogDebug("并行读取 {Count} 个输入位", bitNumbers.Length);
 
         try
@@ -246,6 +285,10 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
 
         if (values == null || values.Length != bitNumbers.Length)
             throw new ArgumentException("值数组长度必须与位号数组相同", nameof(values));
+        foreach (var bitNo in bitNumbers)
+        {
+            ValidateBitNo(bitNo, nameof(bitNumbers));
+        }
         _logger.LogDebug("并行写入 {Count} 个输出位", bitNumbers.Length);
 
         try
@@ -269,6 +312,42 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         {
             _logger.LogError(ex, "并行写入输出位异常");
             return false;
+        }
+    }
+
+    private static void ValidateBitNo(ushort bitNo, string paramName)
+    {
+        if (bitNo < MinBitNo || bitNo > MaxBitNo)
+        {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                bitNo,
+                $"bitNo 超出范围，允许范围为 {MinBitNo}~{MaxBitNo}"
+            );
+        }
+    }
+
+    private static void ValidateInputPortNo(ushort portNo, string paramName)
+    {
+        if (portNo < MinInputPortNo || portNo > MaxInputPortNo)
+        {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                portNo,
+                $"输入端口号超出范围，允许范围为 {MinInputPortNo}~{MaxInputPortNo}"
+            );
+        }
+    }
+
+    private static void ValidateOutputPortNo(ushort portNo, string paramName)
+    {
+        if (portNo != OutputPortNo)
+        {
+            throw new ArgumentOutOfRangeException(
+                paramName,
+                portNo,
+                $"输出端口号固定为 {OutputPortNo}"
+            );
         }
     }
 }

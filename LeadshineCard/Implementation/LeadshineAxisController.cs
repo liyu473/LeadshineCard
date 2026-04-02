@@ -27,6 +27,13 @@ public class LeadshineAxisController(
 {
     private readonly ILogger<LeadshineAxisController> _logger =
         logger ?? NullLogger<LeadshineAxisController>.Instance;
+    private const ushort RelativeMode = 0;
+    private const ushort AbsoluteMode = 1;
+    private const ushort NegativeDirection = 0;
+    private const ushort PositiveDirection = 1;
+    private const ushort DecelerationStopMode = 0;
+    private const ushort EmergencyStopMode = 1;
+    private const double ZeroTolerance = 1e-9;
     private MotionParameters? _currentParameters;
     private DateTime _parametersLastUpdated = DateTime.MinValue;
     private readonly TimeSpan _parametersCacheExpiry = TimeSpan.FromSeconds(5);
@@ -241,7 +248,9 @@ public class LeadshineAxisController(
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_pmove_unit(cardNo, axisNo, distance, 1)); // 1=相对运动
+            var result = await Task.Run(
+                () => LTDMC.dmc_pmove_unit(cardNo, axisNo, distance, RelativeMode)
+            ); // 文档: 0=相对, 1=绝对
 
             if (result != 0)
             {
@@ -279,7 +288,9 @@ public class LeadshineAxisController(
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_pmove_unit(cardNo, axisNo, position, 0)); // 0=绝对运动
+            var result = await Task.Run(
+                () => LTDMC.dmc_pmove_unit(cardNo, axisNo, position, AbsoluteMode)
+            ); // 文档: 0=相对, 1=绝对
 
             if (result != 0)
             {
@@ -312,7 +323,7 @@ public class LeadshineAxisController(
 
         try
         {
-            ushort dir = (ushort)(positiveDirection ? 0 : 1);
+            ushort dir = (ushort)(positiveDirection ? PositiveDirection : NegativeDirection);
             var result = await Task.Run(() => LTDMC.dmc_vmove(cardNo, axisNo, dir));
 
             if (result != 0)
@@ -343,7 +354,8 @@ public class LeadshineAxisController(
 
         try
         {
-            var result = await Task.Run(() => LTDMC.dmc_stop(cardNo, axisNo, (ushort)mode));
+            var hardwareStopMode = MapStopMode(mode);
+            var result = await Task.Run(() => LTDMC.dmc_stop(cardNo, axisNo, hardwareStopMode));
 
             if (result != 0)
             {
@@ -502,10 +514,11 @@ public class LeadshineAxisController(
             status.TargetPosition = targetPos;
 
             var ioStatus = LTDMC.dmc_axis_io_status(cardNo, axisNo);
-            status.PositiveLimit = (ioStatus & 0x01) != 0;
-            status.NegativeLimit = (ioStatus & 0x02) != 0;
-            status.Home = (ioStatus & 0x04) != 0;
-            status.Alarm = (ioStatus & 0x08) != 0;
+            // 文档位定义: bit0=ALM, bit1=EL+, bit2=EL-, bit4=ORG
+            status.Alarm = (ioStatus & 0x0001) != 0;
+            status.PositiveLimit = (ioStatus & 0x0002) != 0;
+            status.NegativeLimit = (ioStatus & 0x0004) != 0;
+            status.Home = (ioStatus & 0x0010) != 0;
 
             var doneResult = LTDMC.dmc_check_done(cardNo, axisNo);
             status.Done = doneResult == 1;
@@ -630,8 +643,13 @@ public class LeadshineAxisController(
 
         try
         {
+            if (Math.Abs(accelTime) > ZeroTolerance)
+            {
+                _logger.LogDebug("dmc_change_speed 的加速参数为保留参数，固定为 0");
+            }
+
             var result = await Task.Run(
-                () => LTDMC.dmc_change_speed_unit(cardNo, axisNo, newSpeed, accelTime)
+                () => LTDMC.dmc_change_speed_unit(cardNo, axisNo, newSpeed, 0)
             );
 
             if (result != 0)
@@ -671,10 +689,68 @@ public class LeadshineAxisController(
         {
             ushort homeDir = (ushort)direction;
             ushort homeMode = (ushort)mode;
-            ushort ezCount = 1; // EZ信号计数，默认为1
+            ushort ezCount = 0; // 文档: 保留参数固定为 0
+
+            // dmc_set_homemode 的速度参数是速度模式(低/高速)，
+            // 实际速度由前置 profile 决定。为了保持接口可用性，这里用传入 speed 写入 profile。
+            double minVel = 0,
+                maxVel = 0,
+                tacc = 0,
+                tdec = 0,
+                stopVel = 0;
+
+            var getProfileResult = await Task.Run(
+                () =>
+                    LTDMC.dmc_get_profile_unit(
+                        cardNo,
+                        axisNo,
+                        ref minVel,
+                        ref maxVel,
+                        ref tacc,
+                        ref tdec,
+                        ref stopVel
+                    )
+            );
+
+            if (getProfileResult != 0)
+            {
+                tacc = _currentParameters?.Acceleration ?? 0.1;
+                tdec = _currentParameters?.Deceleration ?? 0.1;
+                stopVel = _currentParameters?.StopSpeed ?? 0;
+                _logger.LogWarning(
+                    "读取轴 {AxisNo} 当前速度曲线失败(错误码: {ErrorCode})，回零将使用默认加减速参数",
+                    axisNo,
+                    getProfileResult
+                );
+            }
+
+            if (tacc <= 0)
+            {
+                tacc = 0.1;
+            }
+            if (tdec <= 0)
+            {
+                tdec = 0.1;
+            }
+
+            var setProfileResult = await Task.Run(
+                () => LTDMC.dmc_set_profile_unit(cardNo, axisNo, speed, speed, tacc, tdec, stopVel)
+            );
+
+            if (setProfileResult != 0)
+            {
+                _logger.LogError(
+                    "设置轴 {AxisNo} 回零前速度曲线失败，错误码: {ErrorCode}",
+                    axisNo,
+                    setProfileResult
+                );
+                throw new AxisException($"设置回零速度失败", axisNo, setProfileResult);
+            }
+            _currentParameters = null;
+            _parametersLastUpdated = DateTime.MinValue;
 
             var result = await Task.Run(
-                () => LTDMC.dmc_set_homemode(cardNo, axisNo, homeDir, speed, homeMode, ezCount)
+                () => LTDMC.dmc_set_homemode(cardNo, axisNo, homeDir, 1, homeMode, ezCount)
             );
 
             if (result != 0)
@@ -751,15 +827,20 @@ public class LeadshineAxisController(
                     axisNo,
                     result
                 );
-                return (ushort)HomeResultState.InProgress;
+                return (ushort)HomeResultState.Failed;
             }
 
+            if (state is > 1)
+            {
+                _logger.LogWarning("轴 {AxisNo} 回零结果状态异常: {State}", axisNo, state);
+                return (ushort)HomeResultState.Failed;
+            }
             return state;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取轴 {AxisNo} 回零结果异常", axisNo);
-            return (ushort)HomeResultState.InProgress;
+            return (ushort)HomeResultState.Failed;
         }
     }
 
@@ -902,6 +983,7 @@ public class LeadshineAxisController(
         {
             throw new ArgumentException("数组不能为空");
         }
+        ValidateZeroStart("PVT", times[0], positions[0], velocities[0]);
 
         // 自动检查缓冲区空间
         await EnsurePvtBufferSpaceAsync(times.Length);
@@ -999,6 +1081,7 @@ public class LeadshineAxisController(
         {
             throw new ArgumentException("数组不能为空");
         }
+        ValidateZeroStart("PVTS", times[0], positions[0], startVelocity);
 
         // 自动检查缓冲区空间
         await EnsurePvtBufferSpaceAsync(times.Length);
@@ -1067,6 +1150,11 @@ public class LeadshineAxisController(
         {
             throw new ArgumentException("数组不能为空");
         }
+        ValidateZeroStart("PTS", times[0], positions[0], null);
+        if (percents.Any(p => p < 0 || p > 100))
+        {
+            throw new ArgumentException("PTS 百分比范围必须在 [0, 100]");
+        }
         _logger.LogInformation("设置轴 {AxisNo} PTS 表，点数: {Count}", axisNo, times.Length);
 
         try
@@ -1119,6 +1207,7 @@ public class LeadshineAxisController(
         {
             throw new ArgumentException("数组不能为空");
         }
+        ValidateZeroStart("PTT", times[0], positions[0], null);
         _logger.LogInformation("设置轴 {AxisNo} PTT 表，点数: {Count}", axisNo, times.Length);
 
         try
@@ -1208,6 +1297,40 @@ public class LeadshineAxisController(
         {
             _logger.LogError(ex, "获取轴 {AxisNo} PVT 缓冲区剩余空间异常", axisNo);
             return 0;
+        }
+    }
+
+    private static ushort MapStopMode(StopMode mode)
+    {
+        // 文档定义: 0=减速停止, 1=紧急停止
+        return mode switch
+        {
+            StopMode.Deceleration => DecelerationStopMode,
+            StopMode.Immediate => EmergencyStopMode,
+            StopMode.Emergency => EmergencyStopMode,
+            _ => EmergencyStopMode,
+        };
+    }
+
+    private static void ValidateZeroStart(
+        string tableName,
+        double firstTime,
+        double firstPosition,
+        double? firstVelocity
+    )
+    {
+        if (Math.Abs(firstTime) > ZeroTolerance || Math.Abs(firstPosition) > ZeroTolerance)
+        {
+            throw new ArgumentException(
+                $"{tableName} 首点必须满足 time=0 且 position=0"
+            ); //参照Dmc3000系列，第八章
+        }
+
+        if (firstVelocity.HasValue && Math.Abs(firstVelocity.Value) > ZeroTolerance)
+        {
+            throw new ArgumentException(
+                $"{tableName} 首点速度必须为 0"
+            ); //参照Dmc3000系列，第八章
         }
     }
 }

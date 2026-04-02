@@ -32,6 +32,7 @@ public class LeadshineMotionCard(
     private IInterpolationController? _interpolationController;
     private Timer? _heartbeatTimer;
     private readonly object _connectionLock = new();
+    private DateTime? _lastResetTime;
 
     public ushort CardNo => _cardNo;
     public bool IsConnected => _isConnected;
@@ -50,13 +51,53 @@ public class LeadshineMotionCard(
 
         try
         {
-            // 异步执行初始化
-            var result = await Task.Run(() => LTDMC.dmc_board_init());
-
-            if (result != 0)
+            if (_lastResetTime.HasValue)
             {
-                _logger.LogError("板卡初始化失败，错误码: {ErrorCode}", result);
-                throw new CardInitializationException($"板卡初始化失败，错误码: {result}", result);
+                var elapsed = DateTime.UtcNow - _lastResetTime.Value;
+                var waitTime = TimeSpan.FromSeconds(5) - elapsed;
+                if (waitTime > TimeSpan.Zero)
+                {
+                    _logger.LogInformation(
+                        "根据 DMC3000 文档要求，复位后初始化前需等待 5 秒，等待 {WaitMs}ms",
+                        (int)waitTime.TotalMilliseconds
+                    );
+                    await Task.Delay(waitTime);
+                }
+            }
+
+            // 异步执行初始化
+            var cardCount = await Task.Run(() => LTDMC.dmc_board_init());
+
+            // 文档: 0=无卡/异常, 1~8=卡数量, 负值=存在重复卡号
+            if (cardCount == 0)
+            {
+                _logger.LogError("板卡初始化失败：未找到控制卡或控制卡异常");
+                throw new CardInitializationException("板卡初始化失败：未找到控制卡或控制卡异常", 0);
+            }
+
+            if (cardCount < 0)
+            {
+                var duplicatedCardNo = (short)(Math.Abs(cardCount) - 1);
+                _logger.LogError("板卡初始化失败：检测到重复硬件卡号 {CardNo}", duplicatedCardNo);
+                throw new CardInitializationException(
+                    $"板卡初始化失败：检测到重复硬件卡号 {duplicatedCardNo}",
+                    cardCount
+                );
+            }
+
+            if (cardNo >= cardCount)
+            {
+                _logger.LogError(
+                    "请求初始化卡号 {CardNo} 超出范围，当前仅检测到 {CardCount} 张卡（有效卡号 0~{MaxCardNo}）",
+                    cardNo,
+                    cardCount,
+                    cardCount - 1
+                );
+                _ = await Task.Run(() => LTDMC.dmc_board_close());
+                throw new CardInitializationException(
+                    $"卡号 {cardNo} 超出范围，当前仅检测到 {cardCount} 张卡",
+                    -1
+                );
             }
 
             _cardNo = cardNo;
@@ -139,6 +180,8 @@ public class LeadshineMotionCard(
                 _logger.LogError("板卡复位失败，错误码: {ErrorCode}", result);
                 return false;
             }
+            _lastResetTime = DateTime.UtcNow;
+            _logger.LogInformation("板卡复位完成，按文档要求应等待 5 秒后再初始化");
             _logger.LogInformation("板卡 {CardNo} 复位成功", _cardNo);
             return true;
         }
