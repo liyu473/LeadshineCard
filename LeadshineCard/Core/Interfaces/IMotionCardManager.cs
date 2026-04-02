@@ -6,6 +6,18 @@ namespace LeadshineCard.Core.Interfaces;
 public interface IMotionCardManager : IDisposable
 {
     /// <summary>
+    /// 获取检测到的控制卡数量。
+    /// </summary>
+    /// <returns>控制卡数量</returns>
+    Task<ushort> GetDetectedCardCountAsync();
+
+    /// <summary>
+    /// 获取检测到的控制卡卡号列表。
+    /// </summary>
+    /// <returns>控制卡卡号列表</returns>
+    Task<IReadOnlyList<ushort>> GetDetectedCardNosAsync();
+
+    /// <summary>
     /// 获取并初始化指定板卡。
     /// </summary>
     /// <param name="cardNo">板卡号</param>
@@ -19,6 +31,12 @@ public interface IMotionCardManager : IDisposable
     /// <param name="cardNos">板卡号集合</param>
     /// <param name="heartbeat">是否启用心跳</param>
     Task InitializeCardsAsync(IEnumerable<ushort> cardNos, bool heartbeat = true);
+
+    /// <summary>
+    /// 初始化全部检测到的板卡。
+    /// </summary>
+    /// <param name="heartbeat">是否启用心跳</param>
+    Task InitializeAllCardsAsync(bool heartbeat = true);
 
     /// <summary>
     /// 获取当前已经初始化的板卡。

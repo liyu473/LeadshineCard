@@ -17,15 +17,19 @@ public class LeadshineMotionCard(
     ILoggerFactory? loggerFactory = null
 ) : IMotionCard
 {
+    private const ushort MaxSupportedCards = 8;
+
     private readonly ILogger<LeadshineMotionCard> _logger =
         logger ?? NullLogger<LeadshineMotionCard>.Instance;
     private readonly ILoggerFactory _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
     private readonly Dictionary<ushort, IAxisController> _axisControllers = [];
     private readonly object _connectionLock = new();
     private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
+
     private ushort _cardNo;
     private bool _isConnected;
     private bool _disposed;
+    private bool _ownsGlobalLifecycle = true;
     private CardInfo? _cardInfo;
     private IIoController? _ioController;
     private IInterpolationController? _interpolationController;
@@ -53,7 +57,6 @@ public class LeadshineMotionCard(
                         StartHeartbeat();
                     }
 
-                    _logger.LogInformation("板卡 {CardNo} 已初始化，跳过重复初始化", cardNo);
                     return true;
                 }
 
@@ -64,23 +67,15 @@ public class LeadshineMotionCard(
 
             _logger.LogInformation("开始初始化板卡 {CardNo}", cardNo);
 
-            var result = await Task.Run(() => LTDMC.dmc_board_init_onecard(cardNo))
-                .ConfigureAwait(false);
-            if (result != 0)
+            var detectedCardNos = await InitializeGlobalAndGetCardNosAsync().ConfigureAwait(false);
+            if (!detectedCardNos.Contains(cardNo))
             {
-                _logger.LogError("板卡 {CardNo} 初始化失败，错误码: {ErrorCode}", cardNo, result);
-                throw new CardInitializationException($"板卡 {cardNo} 初始化失败", result);
+                await CloseGlobalInitializationAsync().ConfigureAwait(false);
+                throw new CardInitializationException($"未找到板卡 {cardNo}", 0);
             }
 
-            _cardNo = cardNo;
-            _isConnected = true;
-
-            await LoadCardInfoAsync().ConfigureAwait(false);
-
-            if (heartbeat)
-            {
-                StartHeartbeat();
-            }
+            _ownsGlobalLifecycle = true;
+            await BindCardAsync(cardNo, heartbeat).ConfigureAwait(false);
 
             _logger.LogInformation("板卡 {CardNo} 初始化成功", cardNo);
             return true;
@@ -108,33 +103,25 @@ public class LeadshineMotionCard(
         {
             if (!_isConnected)
             {
-                _logger.LogWarning("板卡未连接，无需关闭");
+                return true;
+            }
+
+            if (!_ownsGlobalLifecycle)
+            {
+                DisconnectLocalState();
                 return true;
             }
 
             _logger.LogInformation("关闭板卡 {CardNo}", _cardNo);
 
-            var heartbeatRunning = _heartbeatTimer is not null;
-            StopHeartbeat();
+            DisconnectLocalState();
 
-            var result = await Task.Run(() => LTDMC.dmc_board_close_onecard(_cardNo))
-                .ConfigureAwait(false);
+            var result = await Task.Run(() => LTDMC.dmc_board_close()).ConfigureAwait(false);
             if (result != 0)
             {
-                if (heartbeatRunning)
-                {
-                    StartHeartbeat();
-                }
-
-                _logger.LogError("板卡关闭失败，错误码: {ErrorCode}", result);
+                _logger.LogError("关闭板卡失败，错误码: {ErrorCode}", result);
                 return false;
             }
-
-            _isConnected = false;
-            _axisControllers.Clear();
-            _ioController = null;
-            _interpolationController = null;
-            _cardInfo = null;
 
             _logger.LogInformation("板卡 {CardNo} 已关闭", _cardNo);
             return true;
@@ -161,17 +148,22 @@ public class LeadshineMotionCard(
                 throw new InvalidOperationException("板卡未连接");
             }
 
+            if (!_ownsGlobalLifecycle)
+            {
+                throw new InvalidOperationException("多板卡管理模式下不支持单卡 ResetAsync");
+            }
+
             _logger.LogInformation("复位板卡 {CardNo}", _cardNo);
 
-            var result = await Task.Run(() => LTDMC.dmc_board_reset_onecard(_cardNo))
-                .ConfigureAwait(false);
+            DisconnectLocalState();
+
+            var result = await Task.Run(() => LTDMC.dmc_board_reset()).ConfigureAwait(false);
             if (result != 0)
             {
                 _logger.LogError("板卡复位失败，错误码: {ErrorCode}", result);
                 return false;
             }
 
-            _logger.LogInformation("板卡 {CardNo} 复位成功", _cardNo);
             return true;
         }
         catch (Exception ex)
@@ -264,13 +256,104 @@ public class LeadshineMotionCard(
                 return false;
             }
 
-            _logger.LogInformation("紧急停止执行成功");
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "紧急停止异常");
             throw new MotionCardException("紧急停止异常", ex);
+        }
+    }
+
+    internal async Task AttachInitializedCardAsync(ushort cardNo, bool heartbeat = true)
+    {
+        await _lifecycleLock.WaitAsync().ConfigureAwait(false);
+
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            if (_isConnected)
+            {
+                if (_cardNo == cardNo)
+                {
+                    if (heartbeat && _heartbeatTimer is null)
+                    {
+                        StartHeartbeat();
+                    }
+
+                    return;
+                }
+
+                throw new InvalidOperationException(
+                    $"当前板卡实例已绑定到板卡 {_cardNo}，不能重新绑定为板卡 {cardNo}"
+                );
+            }
+
+            _ownsGlobalLifecycle = false;
+            await BindCardAsync(cardNo, heartbeat).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    private async Task BindCardAsync(ushort cardNo, bool heartbeat)
+    {
+        _cardNo = cardNo;
+        _isConnected = true;
+
+        await LoadCardInfoAsync().ConfigureAwait(false);
+
+        if (heartbeat)
+        {
+            StartHeartbeat();
+        }
+    }
+
+    private async Task<ushort[]> InitializeGlobalAndGetCardNosAsync()
+    {
+        var initResult = await Task.Run(() => LTDMC.dmc_board_init()).ConfigureAwait(false);
+
+        if (initResult == 0)
+        {
+            throw new CardInitializationException("未检测到控制卡", 0);
+        }
+
+        if (initResult < 0)
+        {
+            var duplicatedCardNo = Math.Abs(initResult) - 1;
+            throw new CardInitializationException(
+                $"检测到重复硬件卡号 {duplicatedCardNo}",
+                initResult
+            );
+        }
+
+        ushort cardCount = 0;
+        uint[] cardTypeList = new uint[MaxSupportedCards];
+        ushort[] cardIdList = new ushort[MaxSupportedCards];
+
+        var infoResult = await Task.Run(
+                () => LTDMC.dmc_get_CardInfList(ref cardCount, cardTypeList, cardIdList)
+            )
+            .ConfigureAwait(false);
+
+        if (infoResult != 0)
+        {
+            await CloseGlobalInitializationAsync().ConfigureAwait(false);
+            throw new MotionCardException($"获取板卡信息列表失败，错误码: {infoResult}");
+        }
+
+        return cardIdList.Take(cardCount).ToArray();
+    }
+
+    private async Task CloseGlobalInitializationAsync()
+    {
+        var closeResult = await Task.Run(() => LTDMC.dmc_board_close()).ConfigureAwait(false);
+        if (closeResult != 0)
+        {
+            _logger.LogWarning("释放全局板卡资源失败，错误码: {ErrorCode}", closeResult);
         }
     }
 
@@ -323,15 +406,15 @@ public class LeadshineMotionCard(
 
             ushort totalIn = 0;
             ushort totalOut = 0;
-            result = await Task.Run(() => LTDMC.dmc_get_total_ionum(_cardNo, ref totalIn, ref totalOut))
+            result = await Task.Run(
+                    () => LTDMC.dmc_get_total_ionum(_cardNo, ref totalIn, ref totalOut)
+                )
                 .ConfigureAwait(false);
             if (result == 0)
             {
                 _cardInfo.TotalInputs = totalIn;
                 _cardInfo.TotalOutputs = totalOut;
             }
-
-            _logger.LogInformation("板卡信息: {CardInfo}", _cardInfo);
         }
         catch (Exception ex)
         {
@@ -354,6 +437,16 @@ public class LeadshineMotionCard(
     {
         _heartbeatTimer?.Dispose();
         _heartbeatTimer = null;
+    }
+
+    private void DisconnectLocalState()
+    {
+        StopHeartbeat();
+        _isConnected = false;
+        _cardInfo = null;
+        _ioController = null;
+        _interpolationController = null;
+        _axisControllers.Clear();
     }
 
     private void HeartbeatCallback(object? state)

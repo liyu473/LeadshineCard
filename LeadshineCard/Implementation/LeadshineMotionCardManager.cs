@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using LeadshineCard.Core.Exceptions;
 using LeadshineCard.Core.Interfaces;
+using LeadshineCard.ThirdPart;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -15,21 +17,45 @@ public class LeadshineMotionCardManager(
     ILoggerFactory? loggerFactory = null
 ) : IMotionCardManager, IAsyncDisposable
 {
+    private const ushort MaxSupportedCards = 8;
+
     private readonly ILogger<LeadshineMotionCardManager> _logger =
         logger ?? NullLogger<LeadshineMotionCardManager>.Instance;
     private readonly ILoggerFactory _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
     private readonly ConcurrentDictionary<ushort, Lazy<Task<LeadshineMotionCard>>> _cards = new();
+    private readonly SemaphoreSlim _operationLock = new(1, 1);
+
+    private ushort[]? _detectedCardNos;
+    private bool _isGloballyInitialized;
     private bool _disposed;
+
+    public async Task<ushort> GetDetectedCardCountAsync()
+    {
+        var cardNos = await GetDetectedCardNosAsync().ConfigureAwait(false);
+        return checked((ushort)cardNos.Count);
+    }
+
+    public async Task<IReadOnlyList<ushort>> GetDetectedCardNosAsync()
+    {
+        await EnsureGlobalInitializedAsync().ConfigureAwait(false);
+        return _detectedCardNos ?? [];
+    }
 
     public async Task<IMotionCard> GetCardAsync(ushort cardNo, bool heartbeat = true)
     {
         ThrowIfDisposed();
 
+        var detectedCardNos = await GetDetectedCardNosAsync().ConfigureAwait(false);
+        if (!detectedCardNos.Contains(cardNo))
+        {
+            throw new CardInitializationException($"未检测到板卡 {cardNo}", 0);
+        }
+
         var lazyCard = _cards.GetOrAdd(
             cardNo,
             key =>
                 new Lazy<Task<LeadshineMotionCard>>(
-                    () => CreateAndInitializeCardAsync(key, heartbeat),
+                    () => CreateAndAttachCardAsync(key, heartbeat),
                     LazyThreadSafetyMode.ExecutionAndPublication
                 )
         );
@@ -51,17 +77,34 @@ public class LeadshineMotionCardManager(
         ArgumentNullException.ThrowIfNull(cardNos);
 
         var distinctCardNos = cardNos.Distinct().ToArray();
-        await Task.WhenAll(distinctCardNos.Select(cardNo => GetCardAsync(cardNo, heartbeat)))
-            .ConfigureAwait(false);
+        foreach (var cardNo in distinctCardNos)
+        {
+            await GetCardAsync(cardNo, heartbeat).ConfigureAwait(false);
+        }
+    }
+
+    public async Task InitializeAllCardsAsync(bool heartbeat = true)
+    {
+        var cardNos = await GetDetectedCardNosAsync().ConfigureAwait(false);
+        if (cardNos.Count == 0)
+        {
+            throw new CardInitializationException("未检测到控制卡", 0);
+        }
+
+        await InitializeCardsAsync(cardNos, heartbeat).ConfigureAwait(false);
     }
 
     public IReadOnlyCollection<IMotionCard> GetInitializedCards()
     {
         ThrowIfDisposed();
 
-        return [.. _cards
-            .Values.Where(lazyCard => lazyCard.IsValueCreated && lazyCard.Value.IsCompletedSuccessfully)
-            .Select(lazyCard => (IMotionCard)lazyCard.Value.Result)];
+        return
+        [
+            .. _cards
+                .Values
+                .Where(lazyCard => lazyCard.IsValueCreated && lazyCard.Value.IsCompletedSuccessfully)
+                .Select(lazyCard => (IMotionCard)lazyCard.Value.Result),
+        ];
     }
 
     public async Task<bool> CloseCardAsync(ushort cardNo)
@@ -97,6 +140,20 @@ public class LeadshineMotionCardManager(
         {
             await CloseCardAsync(cardNo).ConfigureAwait(false);
         }
+
+        if (!_isGloballyInitialized)
+        {
+            return;
+        }
+
+        var closeResult = await Task.Run(() => LTDMC.dmc_board_close()).ConfigureAwait(false);
+        if (closeResult != 0)
+        {
+            throw new MotionCardException($"关闭全局板卡资源失败，错误码: {closeResult}");
+        }
+
+        _isGloballyInitialized = false;
+        _detectedCardNos = null;
     }
 
     public void Dispose()
@@ -116,6 +173,7 @@ public class LeadshineMotionCardManager(
         }
 
         _disposed = true;
+        _operationLock.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -128,13 +186,67 @@ public class LeadshineMotionCardManager(
 
         await CloseAllAsync().ConfigureAwait(false);
         _disposed = true;
+        _operationLock.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    private async Task<LeadshineMotionCard> CreateAndInitializeCardAsync(
-        ushort cardNo,
-        bool heartbeat
-    )
+    private async Task EnsureGlobalInitializedAsync()
+    {
+        ThrowIfDisposed();
+
+        if (_isGloballyInitialized)
+        {
+            return;
+        }
+
+        await _operationLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_isGloballyInitialized)
+            {
+                return;
+            }
+
+            var initResult = await Task.Run(() => LTDMC.dmc_board_init()).ConfigureAwait(false);
+            if (initResult == 0)
+            {
+                _detectedCardNos = [];
+                return;
+            }
+
+            if (initResult < 0)
+            {
+                var duplicatedCardNo = Math.Abs(initResult) - 1;
+                throw new CardInitializationException(
+                    $"检测到重复硬件卡号 {duplicatedCardNo}",
+                    initResult
+                );
+            }
+
+            ushort cardCount = 0;
+            uint[] cardTypeList = new uint[MaxSupportedCards];
+            ushort[] cardIdList = new ushort[MaxSupportedCards];
+
+            var infoResult = await Task.Run(
+                    () => LTDMC.dmc_get_CardInfList(ref cardCount, cardTypeList, cardIdList)
+                )
+                .ConfigureAwait(false);
+            if (infoResult != 0)
+            {
+                await CloseGlobalIfNeededAsync().ConfigureAwait(false);
+                throw new MotionCardException($"获取板卡信息列表失败，错误码: {infoResult}");
+            }
+
+            _detectedCardNos = cardIdList.Take(cardCount).ToArray();
+            _isGloballyInitialized = true;
+        }
+        finally
+        {
+            _operationLock.Release();
+        }
+    }
+
+    private async Task<LeadshineMotionCard> CreateAndAttachCardAsync(ushort cardNo, bool heartbeat)
     {
         var card = new LeadshineMotionCard(
             _loggerFactory.CreateLogger<LeadshineMotionCard>(),
@@ -143,8 +255,7 @@ public class LeadshineMotionCardManager(
 
         try
         {
-            await card.InitializeAsync(cardNo, heartbeat).ConfigureAwait(false);
-            _logger.LogInformation("板卡 {CardNo} 已完成初始化并加入管理器", cardNo);
+            await card.AttachInitializedCardAsync(cardNo, heartbeat).ConfigureAwait(false);
             return card;
         }
         catch
@@ -152,6 +263,18 @@ public class LeadshineMotionCardManager(
             card.Dispose();
             throw;
         }
+    }
+
+    private async Task CloseGlobalIfNeededAsync()
+    {
+        var closeResult = await Task.Run(() => LTDMC.dmc_board_close()).ConfigureAwait(false);
+        if (closeResult != 0)
+        {
+            _logger.LogWarning("释放全局板卡资源失败，错误码: {ErrorCode}", closeResult);
+        }
+
+        _isGloballyInitialized = false;
+        _detectedCardNos = null;
     }
 
     private void ThrowIfDisposed()
