@@ -529,4 +529,143 @@ public class LeadshineIoController(ushort cardNo, ILogger<LeadshineIoController>
         }
     }
 
+    /// <summary>
+    /// 获取IO总数
+    /// </summary>
+    public (ushort TotalIn, ushort TotalOut)? GetTotalIoNum()
+    {
+        try
+        {
+            ushort totalIn = 0;
+            ushort totalOut = 0;
+            var result = LTDMC.dmc_get_total_ionum(cardNo, ref totalIn, ref totalOut);
+
+            if (result != 0)
+            {
+                _logger.LogError("获取IO总数失败，错误码: {ErrorCode}", result);
+                return null;
+            }
+
+            _logger.LogDebug("IO总数: 输入={TotalIn}, 输出={TotalOut}", totalIn, totalOut);
+            return (totalIn, totalOut);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取IO总数异常");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 读取所有输入位
+    /// </summary>
+    public async Task<bool[]> ReadAllInputBitsAsync()
+    {
+        try
+        {
+            var ioNum = GetTotalIoNum();
+            if (!ioNum.HasValue)
+            {
+                _logger.LogError("无法获取IO总数");
+                return [];
+            }
+
+            var totalIn = ioNum.Value.TotalIn;
+            _logger.LogDebug("开始读取所有输入位，总数: {TotalIn}", totalIn);
+
+            var results = new bool[totalIn];
+
+            // 按端口批量读取（每个端口32位）
+            var portCount = (totalIn + 31) / 32;
+
+            await Task.Run(() =>
+            {
+                for (ushort port = 0; port < portCount; port++)
+                {
+                    try
+                    {
+                        var portValue = LTDMC.dmc_read_inport(cardNo, port);
+
+                        // 解析端口的每一位
+                        var startBit = port * 32;
+                        var endBit = Math.Min(startBit + 32, totalIn);
+
+                        for (int bit = startBit; bit < endBit; bit++)
+                        {
+                            var bitOffset = bit - startBit;
+                            results[bit] = (portValue & (1u << bitOffset)) != 0;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "读取输入端口 {Port} 异常", port);
+                    }
+                }
+            });
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "读取所有输入位异常");
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// 读取所有输出位
+    /// </summary>
+    public async Task<bool[]> ReadAllOutputBitsAsync()
+    {
+        try
+        {
+            var ioNum = GetTotalIoNum();
+            if (!ioNum.HasValue)
+            {
+                _logger.LogError("无法获取IO总数");
+                return [];
+            }
+
+            var totalOut = ioNum.Value.TotalOut;
+            _logger.LogDebug("开始读取所有输出位，总数: {TotalOut}", totalOut);
+
+            var results = new bool[totalOut];
+
+            // 按端口批量读取（每个端口32位）
+            var portCount = (totalOut + 31) / 32;
+
+            await Task.Run(() =>
+            {
+                for (ushort port = 0; port < portCount; port++)
+                {
+                    try
+                    {
+                        var portValue = LTDMC.dmc_read_outport(cardNo, port);
+
+                        // 解析端口的每一位
+                        var startBit = port * 32;
+                        var endBit = Math.Min(startBit + 32, totalOut);
+
+                        for (int bit = startBit; bit < endBit; bit++)
+                        {
+                            var bitOffset = bit - startBit;
+                            results[bit] = (portValue & (1u << bitOffset)) != 0;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "读取输出端口 {Port} 异常", port);
+                    }
+                }
+            });
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "读取所有输出位异常");
+            return [];
+        }
+    }
+
 }

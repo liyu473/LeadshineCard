@@ -4,7 +4,7 @@ using LyuExtensions.Aspects;
 
 namespace InkoreWpf.View;
 
-[Transient]
+[Singleton]
 public partial class MotionControlView : UserControl
 {
     [Inject]

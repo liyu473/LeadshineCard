@@ -99,4 +99,22 @@ public interface IIoController
     /// <param name="channel">AD通道，范围0~7</param>
     /// <returns>输入电压，读取失败返回null</returns>
     double? GetAdInput(ushort channel);
+
+    /// <summary>
+    /// 获取IO总数
+    /// </summary>
+    /// <returns>(输入位总数, 输出位总数)，失败返回null</returns>
+    (ushort TotalIn, ushort TotalOut)? GetTotalIoNum();
+
+    /// <summary>
+    /// 读取所有输入位
+    /// </summary>
+    /// <returns>所有输入位状态数组，失败返回空数组</returns>
+    Task<bool[]> ReadAllInputBitsAsync();
+
+    /// <summary>
+    /// 读取所有输出位
+    /// </summary>
+    /// <returns>所有输出位状态数组，失败返回空数组</returns>
+    Task<bool[]> ReadAllOutputBitsAsync();
 }

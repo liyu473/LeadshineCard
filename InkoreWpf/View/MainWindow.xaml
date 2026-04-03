@@ -12,7 +12,6 @@
     Height="800"
     d:DataContext="{d:DesignInstance Type=viewmodel:MainWindowViewModel}"
     lyu:LyuWindowHelper.FullScreenKey="F11"
-    lyu:WindowBackdropHelper.Backdrop="Mica"
     Icon="/Asserts/ImgLogo.ico"
     TitleBarHeight="40"
     WindowStartupLocation="CenterScreen"

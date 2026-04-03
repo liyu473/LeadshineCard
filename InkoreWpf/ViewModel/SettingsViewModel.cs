@@ -31,11 +31,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     public SettingsViewModel()
     {
-        LoadSettings();
-    }
-
-    private void LoadSettings()
-    {
         SelectedTheme = (WindowThemeMode)Settings.Default.SelectedTheme;
         SelectedBackdrop = (WindowBackdropType)Settings.Default.SelectedBackdrop;
         SelectedNavMode = (NavigationViewPaneDisplayMode)Settings.Default.SelectedNavMode;

@@ -45,7 +45,10 @@
             <TabItem Header="IO控制">
                 <Grid Margin="0,8,0,0" ColumnDefinitions="*,*">
                     <Grid Grid.Column="0" RowDefinitions="Auto,*">
-
+                        <ctrl:SectionHeader Title="输入" Grid.Row="0" />
+                    </Grid>
+                    <Grid Grid.Column="1" RowDefinitions="Auto,*">
+                        <ctrl:SectionHeader Title="输出" Grid.Row="0" />
                     </Grid>
                 </Grid>
             </TabItem>
