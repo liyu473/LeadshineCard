@@ -45,12 +45,42 @@
         <SolidColorBrush Opacity="0.15" Color="{Binding Source={x:Static ui:ThemeManager.Current}, Path=AccentColor}" />
     </lyu:LyuWindow.TitleBarBackground>
 
+    <lyu:LyuWindow.TitleBarLeftContent>
+        <Grid>
+            <lyu:SimpleStackPanel HorizontalAlignment="Left">
+                <Button
+                    Click="LogInfo_Click"
+                    Content="日志信息"
+                    Style="{StaticResource TitleBarButtonStyle}" />
+            </lyu:SimpleStackPanel>
+        </Grid>
+
+    </lyu:LyuWindow.TitleBarLeftContent>
+
     <lyu:LyuWindow.TitleBarRightContent>
-        <lyu:SimpleStackPanel>
-            <Button
-                Click="Help_Click"
-                Content="帮助"
-                Style="{StaticResource TitleBarButtonStyle}" />
+        <lyu:SimpleStackPanel Margin="16,0">
+            <Button Style="{StaticResource TitleBarButtonStyle}">
+                <ui:FlyoutService.Flyout>
+                    <ui:Flyout>
+                        <Border>
+                            <lyu:SimpleStackPanel Width="240" Spacing="8">
+                                <TextBlock
+                                    Margin="0,0,0,8"
+                                    FontWeight="SemiBold"
+                                    Text="人员信息" />
+                                <Separator />
+                                <TextBlock Text="用户名: Admin" />
+                                <TextBlock Text="权限: 管理员" />
+                                <Button HorizontalAlignment="Right" Content="退出登录" />
+                            </lyu:SimpleStackPanel>
+                        </Border>
+                    </ui:Flyout>
+                </ui:FlyoutService.Flyout>
+                <lyu:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Contact}" />
+                    <TextBlock Text="管理员" />
+                </lyu:SimpleStackPanel>
+            </Button>
         </lyu:SimpleStackPanel>
     </lyu:LyuWindow.TitleBarRightContent>
 
@@ -64,11 +94,10 @@
         </Grid.Background>
         <lyu:DrawersHost>
             <lyu:Drawer
-                x:Name="HelpDrawer"
-                MinWidth="220"
-                Header="Help"
-                Position="Right">
-
+                x:Name="LogDrawer"
+                MaxHeight="400"
+                Header="Log"
+                Position="Bottom">
             </lyu:Drawer>
         </lyu:DrawersHost>
         <ui:NavigationView

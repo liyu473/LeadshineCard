@@ -4,7 +4,10 @@ using CommunityToolkit.Mvvm.Input;
 using InkoreWpf.Model;
 using LyuEModbus.Abstractions;
 using LyuEModbus.Extensions;
+using LyuEModbus.Models;
 using LyuExtensions.Aspects;
+using LyuWpfHelper.Extensions;
+using LyuWpfHelper.Services;
 using LyuWpfHelper.ViewModels;
 
 namespace InkoreWpf.ViewModel;
@@ -12,11 +15,16 @@ namespace InkoreWpf.ViewModel;
 [Singleton]
 public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
 {
+    [Inject]
+    private readonly INotificationService _notification;
+
+    public ObservableCollection<ModbusMasterOptions> MasterOptions { get; set; } = [];
+
     /// <summary>
     /// Master名称
     /// </summary>
     [ObservableProperty]
-    public partial string MasterName { get; set; }
+    public partial ModbusMasterOptions SelectedMaster { get; set; }
 
     /// <summary>
     /// 位索引列表 (0-15)
@@ -61,10 +69,16 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task ReadAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            ReadResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            ReadResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -228,10 +242,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task WriteAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            WriteResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            WriteResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -408,10 +427,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task ReadBitAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            BitReadResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            BitReadResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -432,10 +456,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task ReadAllBitsAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            BitReadAllResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            BitReadAllResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -493,10 +522,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task WriteBitAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            BitWriteResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            BitWriteResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -539,10 +573,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task ReadCoilAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            CoilReadResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            CoilReadResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -595,10 +634,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task WriteCoilAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            CoilWriteResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            CoilWriteResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 
@@ -630,10 +674,15 @@ public partial class ModbusTcpViewModel(IEModbusFactory factory) : ViewModelBase
     [RelayCommand]
     private async Task ToggleCoilAsync()
     {
-        var master = factory.GetMaster(MasterName);
+        if (SelectedMaster is null)
+        {
+            _notification.ShowError("无主站配置！");
+            return;
+        }
+        var master = factory.GetMaster(SelectedMaster.Name);
         if (master == null)
         {
-            CoilWriteResult = $"错误：未找到Modbus主站 '{MasterName}'";
+            CoilWriteResult = $"错误：未找到Modbus主站 '{SelectedMaster.Name}'";
             return;
         }
 

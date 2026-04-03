@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
     xmlns:local="clr-namespace:InkoreWpf.View"
+    xmlns:lyu="http://schemas.lyuwpfhelper.com/winfx/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
     xmlns:viewmodel="clr-namespace:InkoreWpf.ViewModel"
@@ -17,14 +18,14 @@
         IsTabStop="False"
         VerticalScrollBarVisibility="Auto">
         <ikw:SimpleStackPanel Margin="16" Spacing="8">
-            <ui:SettingsCard Description="配置文件中的Modbus主站名称" Header="主站名称">
+            <ui:SettingsCard Description="配置文件中的Modbus主站列表" Header="主站">
                 <ui:SettingsCard.HeaderIcon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Link}" />
                 </ui:SettingsCard.HeaderIcon>
-                <TextBox
-                    Width="150"
-                    IsReadOnly="True"
-                    Text="{Binding MasterName}" />
+                <lyu:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                    <lyu:SelectableTextBlock Text="{Binding SelectedMaster.IpAddress}" />
+                    <ComboBox ItemsSource="{Binding MasterOptions}" SelectedItem="{Binding SelectedMaster}" />
+                </lyu:SimpleStackPanel>
             </ui:SettingsCard>
 
             <ctrl:SectionHeader

@@ -77,8 +77,8 @@ public partial class MainWindow : LyuWindow
         _isFirstThemeChange = false;
     }
 
-    private void Help_Click(object sender, System.Windows.RoutedEventArgs e)
+    private void LogInfo_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        HelpDrawer.IsOpen = !HelpDrawer.IsOpen;
+        LogDrawer.IsOpen = !LogDrawer.IsOpen;
     }
 }
