@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using InkoreWpf.View;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,7 +25,8 @@ public static class NavigateServerExtensions
     {
         return services
             .AddPage<HomeView>("Home")
-            .AddPage<SettingsView>("Settings");
+            .AddPage<SettingsView>("Settings")
+            .AddPage<MotionControlView>("MotionControl");
     }
 }
 

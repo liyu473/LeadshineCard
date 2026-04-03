@@ -13,6 +13,7 @@
     d:DataContext="{d:DesignInstance Type=viewmodel:MainWindowViewModel}"
     lyu:LyuWindowHelper.FullScreenKey="F11"
     lyu:WindowBackdropHelper.Backdrop="Mica"
+    Icon="/Asserts/ImgLogo.ico"
     TitleBarBackground="Transparent"
     TitleBarHeight="40"
     WindowStartupLocation="CenterScreen"
@@ -44,8 +45,8 @@
     <lyu:LyuWindow.TitleBarRightContent>
         <lyu:SimpleStackPanel>
             <Button
-                Click="About_Click"
-                Content="关于"
+                Click="Help_Click"
+                Content="帮助"
                 Style="{StaticResource TitleBarButtonStyle}" />
         </lyu:SimpleStackPanel>
     </lyu:LyuWindow.TitleBarRightContent>
@@ -53,15 +54,11 @@
     <Grid>
         <lyu:DrawersHost>
             <lyu:Drawer
-                x:Name="AboutDrawer"
+                x:Name="HelpDrawer"
                 MinWidth="220"
-                Header="About"
+                Header="Help"
                 Position="Right">
-                <lyu:SimpleStackPanel Spacing="12">
-                    <TextBlock>LyuWpfHelper</TextBlock>
-                    <TextBlock>LyuExtensions</TextBlock>
-                    <TextBlock>LyuLogExtension</TextBlock>
-                </lyu:SimpleStackPanel>
+
             </lyu:Drawer>
         </lyu:DrawersHost>
         <ui:NavigationView
@@ -85,14 +82,14 @@
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="运动控制" Tag="MotionControl">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.DeviceLaptopNoPic}" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
-                <ui:NavigationViewItem Content="个人" Tag="Account">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Contact}" />
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
                 <ui:NavigationViewItem Content="设置" Tag="Settings">
                     <ui:NavigationViewItem.Icon>
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Settings}" />
@@ -105,7 +102,10 @@
                 Padding="59,0"
                 IsTabStop="False"
                 VerticalScrollBarVisibility="Auto">
-                <ui:Frame x:Name="ContentFrame" Content="{Binding Page, Mode=TwoWay}" />
+                <ui:Frame
+                    x:Name="ContentFrame"
+                    Margin="0,16,0,0"
+                    Content="{Binding Page, Mode=TwoWay}" />
             </ScrollViewer>
 
         </ui:NavigationView>

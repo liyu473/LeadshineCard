@@ -1,9 +1,10 @@
+using LeadshineCard.Core.Enums;
 using LeadshineCard.Core.Interfaces;
+using LeadshineCard.Implementation;
 using LyuExtensions.Aspects;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace InkoreWpf.Service;
 
@@ -11,7 +12,7 @@ namespace InkoreWpf.Service;
 public class InitializeServices : IHostedService
 {
     [Inject]
-    private readonly IMotionCard _card;
+    private readonly IMotionCardManager _cardManager;
 
     [Inject]
     private readonly ILogger<InitializeServices> _logger;
@@ -19,12 +20,20 @@ public class InitializeServices : IHostedService
     [TryCatch]
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _card.InitializeAsync();
+#if DEBUG
+        await LeadshineDebugModeHelper.SetDebugModeAsync(
+            DebugOutputMode.All,
+            "LeadshineCardDebug.log",
+            _logger
+        );
+#endif
+
+        await _cardManager.InitializeAllCardsAsync();
+        _logger.ZLogInformation($"All motion cards initialized successfully.");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("正在关闭板卡连接...");
-        await _card.CloseAsync();
+        await _cardManager.CloseAllAsync();
     }
 }

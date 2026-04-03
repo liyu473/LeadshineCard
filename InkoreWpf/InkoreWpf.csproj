@@ -15,6 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Asserts\ImgLogo.ico" />
+    <None Remove="Asserts\KINGLEE_Logo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" />
     <PackageReference Include="LyuExtensions" Version="1.1.9" />
@@ -41,6 +46,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LeadshineCard\LeadshineCard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Asserts\ImgLogo.ico" />
+    <Resource Include="Asserts\KINGLEE_Logo.ico" />
   </ItemGroup>
 
 </Project>

@@ -64,7 +64,7 @@ public partial class SettingsViewModel : ViewModelBase
     /// <summary>
     /// 版本号
     /// </summary>
-    public string Version => _assembly.GetName().Version?.ToString() ?? string.Empty;
+    public string Version => $"{_assembly.GetName().Version?.ToString() ?? string.Empty} © KingLee 2026" ;
 }
 
 public record NavigationTransitionItem(string Name, NavigationTransitionInfo Value);

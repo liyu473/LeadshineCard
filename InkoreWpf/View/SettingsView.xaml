@@ -43,10 +43,7 @@
     </UserControl.Resources>
 
     <ikw:SimpleStackPanel Spacing="4">
-        <TextBlock
-            Margin="0,16,10,5"
-            Style="{StaticResource BodyStrongTextBlockStyle}"
-            Text="Appearance &amp; behavior" />
+        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Appearance &amp; behavior" />
 
         <ui:SettingsCard Description="Select which app theme to display" Header="主题">
             <ui:SettingsCard.HeaderIcon>

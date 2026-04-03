@@ -1,5 +1,4 @@
-﻿using System.Windows.Controls.Primitives;
-using iNKORE.UI.WPF.Modern;
+﻿using iNKORE.UI.WPF.Modern;
 using iNKORE.UI.WPF.Modern.Controls;
 using InkoreWpf.Service;
 using InkoreWpf.ViewModel;
@@ -78,8 +77,8 @@ public partial class MainWindow : LyuWindow
         _isFirstThemeChange = false;
     }
 
-    private void About_Click(object sender, System.Windows.RoutedEventArgs e)
+    private void Help_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        AboutDrawer.IsOpen = !AboutDrawer.IsOpen;
+        HelpDrawer.IsOpen = !HelpDrawer.IsOpen;
     }
 }
