@@ -26,7 +26,8 @@ public static class NavigateServerExtensions
         return services
             .AddPage<HomeView>("Home")
             .AddPage<SettingsView>("Settings")
-            .AddPage<MotionControlView>("MotionControl");
+            .AddPage<MotionControlView>("MotionControl")
+            .AddPage<ModbusTcpView>("ModbusTcp");
     }
 }
 

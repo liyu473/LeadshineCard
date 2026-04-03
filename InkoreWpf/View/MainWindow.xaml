@@ -97,6 +97,11 @@
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.DeviceLaptopNoPic}" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Modbus通讯测试" Tag="ModbusTcp">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Connect}" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>

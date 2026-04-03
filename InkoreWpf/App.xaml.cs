@@ -1,6 +1,7 @@
 ﻿using InkoreWpf.Service;
 using InkoreWpf.View;
 using LeadshineCard.Extensions;
+using LyuEModbus.DependencyInjection;
 using LyuExtensions.Extensions;
 using LyuLogExtension.Builder;
 using LyuLogExtension.Extensions;
@@ -138,6 +139,8 @@ public partial class App : Application
         services.AddLyuBusyService();
 
         services.AddLeadshineMultiMotionControl(); //雷赛服务
+
+        services.AddModbus();
     }
 
     private void GlobalErrorCapture()

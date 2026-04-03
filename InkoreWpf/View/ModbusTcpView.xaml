@@ -1,0 +1,332 @@
+﻿<UserControl
+    x:Class="InkoreWpf.View.ModbusTcpView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="clr-namespace:InkoreWpf.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
+    xmlns:local="clr-namespace:InkoreWpf.View"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+    xmlns:viewmodel="clr-namespace:InkoreWpf.ViewModel"
+    d:DataContext="{d:DesignInstance Type=viewmodel:ModbusTcpViewModel}"
+    mc:Ignorable="d">
+    <ui:ScrollViewerEx
+        ui:AutoHideScrollBars="True"
+        ui:FocusVisualHelper.UseSystemFocusVisuals="False"
+        IsTabStop="False"
+        VerticalScrollBarVisibility="Auto">
+        <ikw:SimpleStackPanel Margin="16" Spacing="8">
+            <ui:SettingsCard Description="配置文件中的Modbus主站名称" Header="主站名称">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Link}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="150"
+                    IsReadOnly="True"
+                    Text="{Binding MasterName}" />
+            </ui:SettingsCard>
+
+            <ctrl:SectionHeader
+                Title="读取寄存器"
+                Margin="0,16,0,8"
+                BarHeight="18"
+                TitleFontSize="16" />
+
+            <ui:SettingsCard Description="选择要读取的数据类型" Header="数据类型">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Library}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ComboBox
+                    Width="120"
+                    ItemsSource="{Binding DataTypes}"
+                    SelectedItem="{Binding ReadDataType, Mode=TwoWay}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="Modbus寄存器起始地址" Header="起始地址">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.MapPin}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding ReadAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要读取的数据数量" Header="读取数量">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.BulletedList}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding ReadCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="点击读取按钮执行读取操作" Header="读取操作">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Download}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                    <Button
+                        Width="80"
+                        Command="{Binding ReadCommand}"
+                        Content="读取" />
+                </ikw:SimpleStackPanel>
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="读取到的数据值" Header="读取结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.ReadingList}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="300"
+                    IsReadOnly="True"
+                    Text="{Binding ReadResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+            <ctrl:SectionHeader
+                Title="写入寄存器"
+                Margin="0,24,0,8"
+                BarHeight="18"
+                TitleFontSize="16" />
+
+            <ui:SettingsCard Description="选择要写入的数据类型" Header="数据类型">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Library}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ComboBox
+                    Width="120"
+                    ItemsSource="{Binding DataTypes}"
+                    SelectedItem="{Binding WriteDataType, Mode=TwoWay}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="Modbus寄存器起始地址" Header="起始地址">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.MapPin}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding WriteAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要写入的值，多个值用逗号分隔" Header="写入值">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="200" Text="{Binding WriteValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="点击写入按钮执行写入操作" Header="写入操作">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Upload}" />
+                </ui:SettingsCard.HeaderIcon>
+                <Button
+                    Width="80"
+                    Command="{Binding WriteCommand}"
+                    Content="写入" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="写入操作的结果" Header="写入结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Accept}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="300"
+                    IsReadOnly="True"
+                    Text="{Binding WriteResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+            <ctrl:SectionHeader
+                Title="读取寄存器位"
+                Margin="0,24,0,8"
+                BarHeight="18"
+                TitleFontSize="16" />
+
+            <ui:SettingsCard Description="要读取位的寄存器地址" Header="寄存器地址">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.MapPin}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding BitReadAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要读取的位索引（0-15，0为最低位）" Header="位索引">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Component}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ComboBox
+                    Width="80"
+                    ItemsSource="{Binding BitIndexes}"
+                    SelectedItem="{Binding BitReadIndex, Mode=TwoWay}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="读取单个位或所有16位" Header="位读取操作">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Download}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                    <Button
+                        Width="80"
+                        Command="{Binding ReadBitCommand}"
+                        Content="读取位" />
+                    <Button
+                        Width="100"
+                        Command="{Binding ReadAllBitsCommand}"
+                        Content="读取全部位" />
+                </ikw:SimpleStackPanel>
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="单个位读取结果" Header="位读取结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.ReadingList}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="120"
+                    IsReadOnly="True"
+                    Text="{Binding BitReadResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="所有16位读取结果（从高位到低位）" Header="全部位结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.BulletedList}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="500"
+                    IsReadOnly="True"
+                    Text="{Binding BitReadAllResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+            <ctrl:SectionHeader
+                Title="写入寄存器位"
+                Margin="0,24,0,8"
+                BarHeight="18"
+                TitleFontSize="16" />
+
+            <ui:SettingsCard Description="要写入位的寄存器地址" Header="寄存器地址">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.MapPin}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding BitWriteAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要写入的位索引（0-15，0为最低位）" Header="位索引">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Component}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ComboBox
+                    Width="80"
+                    ItemsSource="{Binding BitIndexes}"
+                    SelectedItem="{Binding BitWriteIndex, Mode=TwoWay}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要写入的位值" Header="位值">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ui:ToggleSwitch
+                    IsOn="{Binding BitWriteValue, Mode=TwoWay}"
+                    OffContent="0 (False)"
+                    OnContent="1 (True)" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="点击写入按钮执行位写入操作" Header="位写入操作">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Upload}" />
+                </ui:SettingsCard.HeaderIcon>
+                <Button
+                    Width="80"
+                    Command="{Binding WriteBitCommand}"
+                    Content="写入位" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="位写入操作的结果" Header="位写入结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Accept}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="300"
+                    IsReadOnly="True"
+                    Text="{Binding BitWriteResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+            <ctrl:SectionHeader
+                Title="读取线圈 (Coil)"
+                Margin="0,24,0,8"
+                BarHeight="18"
+                TitleFontSize="16" />
+
+            <ui:SettingsCard Description="线圈起始地址" Header="起始地址">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.MapPin}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding CoilReadAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要读取的线圈数量" Header="读取数量">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.BulletedList}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding CoilReadCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="点击读取按钮执行线圈读取操作" Header="线圈读取操作">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Download}" />
+                </ui:SettingsCard.HeaderIcon>
+                <Button
+                    Width="80"
+                    Command="{Binding ReadCoilCommand}"
+                    Content="读取" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="线圈读取结果" Header="读取结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.ReadingList}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="400"
+                    IsReadOnly="True"
+                    Text="{Binding CoilReadResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+            <ctrl:SectionHeader
+                Title="写入线圈 (Coil)"
+                Margin="0,24,0,8"
+                BarHeight="18"
+                TitleFontSize="16" />
+
+            <ui:SettingsCard Description="线圈起始地址" Header="起始地址">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.MapPin}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="120" Text="{Binding CoilWriteAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="要写入的值，多个值用逗号分隔（支持 true/false, 1/0, on/off）" Header="写入值">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox Width="200" Text="{Binding CoilWriteValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="写入或切换线圈状态" Header="线圈写入操作">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Upload}" />
+                </ui:SettingsCard.HeaderIcon>
+                <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="8">
+                    <Button
+                        Width="80"
+                        Command="{Binding WriteCoilCommand}"
+                        Content="写入" />
+                    <Button
+                        Width="80"
+                        Command="{Binding ToggleCoilCommand}"
+                        Content="切换" />
+                </ikw:SimpleStackPanel>
+            </ui:SettingsCard>
+
+            <ui:SettingsCard Description="线圈写入操作的结果" Header="写入结果">
+                <ui:SettingsCard.HeaderIcon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Accept}" />
+                </ui:SettingsCard.HeaderIcon>
+                <TextBox
+                    Width="300"
+                    IsReadOnly="True"
+                    Text="{Binding CoilWriteResult, Mode=OneWay}" />
+            </ui:SettingsCard>
+
+        </ikw:SimpleStackPanel>
+    </ui:ScrollViewerEx>
+</UserControl>
