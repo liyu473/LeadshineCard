@@ -137,7 +137,7 @@ public partial class App : Application
         services.AddLyuNotificationService();
         services.AddLyuBusyService();
 
-        services.AddLeadshineMotionControl(); //雷赛单例服务
+        services.AddLeadshineMultiMotionControl(); //雷赛服务
     }
 
     private void GlobalErrorCapture()

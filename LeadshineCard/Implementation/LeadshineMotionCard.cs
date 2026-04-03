@@ -195,13 +195,10 @@ public class LeadshineMotionCard : IMotionCard
             throw new InvalidOperationException("板卡未初始化，请先调用 InitializeAsync");
         }
 
-        if (_ioController == null)
-        {
-            _ioController = new LeadshineIoController(
+        _ioController ??= new LeadshineIoController(
                 CardNo,
                 _loggerFactory.CreateLogger<LeadshineIoController>()
             );
-        }
 
         return _ioController;
     }
@@ -213,13 +210,10 @@ public class LeadshineMotionCard : IMotionCard
             throw new InvalidOperationException("板卡未初始化，请先调用 InitializeAsync");
         }
 
-        if (_interpolationController == null)
-        {
-            _interpolationController = new LeadshineInterpolationController(
+        _interpolationController ??= new LeadshineInterpolationController(
                 CardNo,
                 _loggerFactory.CreateLogger<LeadshineInterpolationController>()
             );
-        }
 
         return _interpolationController;
     }

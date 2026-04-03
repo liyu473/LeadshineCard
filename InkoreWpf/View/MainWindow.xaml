@@ -14,13 +14,13 @@
     lyu:LyuWindowHelper.FullScreenKey="F11"
     lyu:WindowBackdropHelper.Backdrop="Mica"
     Icon="/Asserts/ImgLogo.ico"
-    TitleBarBackground="Transparent"
     TitleBarHeight="40"
     WindowStartupLocation="CenterScreen"
     WindowState="Maximized"
     mc:Ignorable="d">
     <lyu:LyuWindow.Resources>
         <ResourceDictionary>
+            <lyu:ColorToBrushConverter x:Key="ColorToBrushConverter" />
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemeResources CanBeAccessedAcrossThreads="False">
                     <ui:ThemeResources.ThemeDictionaries>
@@ -42,6 +42,10 @@
         </ResourceDictionary>
     </lyu:LyuWindow.Resources>
 
+    <lyu:LyuWindow.TitleBarBackground>
+        <SolidColorBrush Opacity="0.15" Color="{Binding Source={x:Static ui:ThemeManager.Current}, Path=AccentColor}" />
+    </lyu:LyuWindow.TitleBarBackground>
+
     <lyu:LyuWindow.TitleBarRightContent>
         <lyu:SimpleStackPanel>
             <Button
@@ -51,7 +55,14 @@
         </lyu:SimpleStackPanel>
     </lyu:LyuWindow.TitleBarRightContent>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
+        <Grid.Background>
+            <LinearGradientBrush Opacity="0.15" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Offset="0" Color="{Binding Source={x:Static ui:ThemeManager.Current}, Path=AccentColor}" />
+                <GradientStop Offset="0.5" Color="{Binding Source={x:Static ui:ThemeManager.Current}, Path=AccentColor}" />
+                <GradientStop Offset="1" Color="{Binding Source={x:Static ui:ThemeManager.Current}, Path=AccentColor}" />
+            </LinearGradientBrush>
+        </Grid.Background>
         <lyu:DrawersHost>
             <lyu:Drawer
                 x:Name="HelpDrawer"

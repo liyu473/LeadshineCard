@@ -59,7 +59,7 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
         return Task.FromResult(card);
     }
 
-    public async Task InitializeAllCardsAsync()
+    public async Task<bool> InitializeAllCardsAsync()
     {
         ThrowIfDisposed();
 
@@ -68,7 +68,7 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
         {
             if (_isInitialized)
             {
-                return;
+                return true;
             }
 
             var detectedCardNos = LeadshineCardLibraryHelper.InitializeAndGetDetectedCardNos(_logger);
@@ -87,6 +87,7 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
                 }
 
                 _isInitialized = true;
+                return true;
             }
             catch
             {
@@ -97,7 +98,7 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
 
                 _cards.Clear();
                 LeadshineCardLibraryHelper.TryClose(_logger);
-                throw;
+                return false;
             }
         }
         finally
@@ -140,11 +141,11 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
         return closed;
     }
 
-    public async Task CloseAllAsync()
+    public async Task<bool> CloseAllAsync()
     {
         if (_disposed)
         {
-            return;
+            return true;
         }
 
         await _lifecycleLock.WaitAsync().ConfigureAwait(false);
@@ -163,6 +164,13 @@ public class LeadshineMotionCardManager : IMotionCardManager, IAsyncDisposable
                 LeadshineCardLibraryHelper.Close();
                 _isInitialized = false;
             }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "关闭所有板卡失败");
+            return false;
         }
         finally
         {

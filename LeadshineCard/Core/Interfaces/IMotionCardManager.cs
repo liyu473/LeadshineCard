@@ -30,7 +30,8 @@ public interface IMotionCardManager : IDisposable
     /// <summary>
     /// 初始化全部检测到的板卡，并缓存对应实例。
     /// </summary>
-    Task InitializeAllCardsAsync();
+    /// <returns>是否初始化成功</returns>
+    Task<bool> InitializeAllCardsAsync();
 
     /// <summary>
     /// 获取当前已经初始化的板卡。
@@ -48,5 +49,6 @@ public interface IMotionCardManager : IDisposable
     /// <summary>
     /// 关闭全部板卡。
     /// </summary>
-    Task CloseAllAsync();
+    /// <returns>是否关闭成功</returns>
+    Task<bool> CloseAllAsync();
 }
